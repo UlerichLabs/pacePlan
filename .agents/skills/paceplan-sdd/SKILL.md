@@ -1,165 +1,320 @@
 ---
 name: paceplan-sdd
-description: Spec Driven Development do PacePlan com modelo de domínio, épicos, user stories e acceptance criteria. Use sempre que for implementar qualquer feature, página ou componente do PacePlan — especialmente ao trabalhar em NewSessionPage, SessionDetailPage, DashboardPage, HistoryPage, ou qualquer story dos épicos 01 ao 05. Invoque quando o usuário mencionar "story", "épico", "AC", "implementar", ou qualquer nome de página do projeto.
+description: Spec Driven Development do PacePlan — modelo de domínio revisado com macrociclo, fases, SessionTypes expandidos (força + mobilidade + corrida) e acceptance criteria completos. Use sempre que for implementar qualquer feature, página ou componente do PacePlan. Invoque ao mencionar "story", "épico", "AC", "macrociclo", "fase", "implementar" ou qualquer nome de página do projeto.
 license: Proprietary
 metadata:
   author: UlerichLabs
-  version: "1.0"
+  version: "2.0"
   project: paceplan
-compatibility: Claude Code, Gemini CLI, Codex — qualquer agente com suporte ao padrão Agent Skills
+compatibility: Claude Code, Gemini CLI, Codex
+---
+
+## Contexto do produto
+
+O PacePlan é usado por corredores que já têm um plano de treino (gerado por coach ou IA) e precisam de um lugar para executar, registrar e acompanhar. A semana real do usuário inclui corrida + musculação + mobilidade — não é só corrida.
+
+Caso de uso central: Lucas, meia maratona novembro 2026. Plano de 7 meses em 4 fases. Segunda: musculação inferiores. Terça: easy run esteira. Quarta: musculação superiores/core. Quinta: quality run esteira. Sexta: mobilidade. Sábado: descanso. Domingo: long run rua Petrópolis.
+
+---
+
+## Hierarquia de domínio
+
+```
+Macrociclo (ex: Meia Maratona Novembro 2026)
+  └── Phase / Fase (ex: Fase 1 — Construção de Base · Abril → Junho)
+        └── Semana (contexto calculado pela data atual)
+              └── TrainingSession (ex: Domingo · Long Run · 8 km · Rua)
+                    └── SessionLog (dados reais pós-treino)
+```
+
 ---
 
 ## Modelo de domínio
 
-### TrainingSession
+### Macrociclo
+```ts
+interface Macrocycle {
+  id: string
+  name: string               // "Meia Maratona — Novembro 2026"
+  goalDistance: number       // km — 21
+  raceDate: string           // YYYY-MM-DD
+  startDate: string          // YYYY-MM-DD
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
 ```
-id:             UUID
-date:           string (YYYY-MM-DD)
-type:           SessionType (enum)
-targetDistance: number | undefined (km)
-targetPace:     string | undefined ("MM:SS")
-notes:          string | undefined
-status:         'planned' | 'done' | 'skipped'
-log:            SessionLog | undefined
-createdAt:      string (ISO)
-updatedAt:      string (ISO)
+
+### Phase (Fase)
+```ts
+interface Phase {
+  id: string
+  macrocycleId: string
+  name: string               // "Fase 1 — Construção de Base"
+  objective: string          // "Consolidar 10 km de forma confortável"
+  startDate: string
+  endDate: string
+  order: number              // 1, 2, 3, 4
+  longRunTarget?: number     // km — meta do longão desta fase
+  weeklyVolumeTarget?: number // km — volume alvo de corrida semanal
+}
+```
+
+### SessionType (enum expandido)
+```ts
+enum SessionType {
+  // Corridas
+  EASY_RUN = "EASY_RUN",           // Zona 2, ritmo de conversa
+  QUALITY_RUN = "QUALITY_RUN",     // Tiros, variação de pace, inclinação
+  LONG_RUN = "LONG_RUN",           // Longão — treino principal do fim de semana
+  PACE_RUN = "PACE_RUN",           // Cravar o pace alvo da prova
+  RECOVERY_RUN = "RECOVERY_RUN",   // Corrida regenerativa, muito leve
+  RACE = "RACE",                   // Prova oficial
+
+  // Força
+  STRENGTH_LOWER = "STRENGTH_LOWER", // Inferiores: agachamento, leg press, panturrilha
+  STRENGTH_UPPER = "STRENGTH_UPPER", // Superiores/core: costas, peito, abdômen, lombar
+
+  // Complementar
+  MOBILITY = "MOBILITY",           // Alongamento, mobilidade articular
+  REST = "REST",                   // Descanso total
+}
+```
+
+### Environment (enum — só para corridas)
+```ts
+enum Environment {
+  TREADMILL = "TREADMILL",  // Esteira — ambiente controlado
+  OUTDOOR = "OUTDOOR",      // Rua / trilha
+}
+```
+
+### TrainingSession
+```ts
+interface TrainingSession {
+  id: string
+  date: string                      // YYYY-MM-DD
+  type: SessionType
+  targetDistance?: number           // km — apenas corridas
+  targetDuration?: number           // minutos — alternativa à distância
+  targetPace?: string               // "MM:SS" — apenas corridas
+  environment?: Environment         // apenas corridas
+  notes?: string
+  status: 'planned' | 'done' | 'skipped'
+  log?: SessionLog
+  createdAt: string
+  updatedAt: string
+}
 ```
 
 ### SessionLog
-```
-actualDistance: number (km)
-actualPace:     string ("MM:SS")
-feeling:        1 | 2 | 3 | 4 | 5
-notes:          string | undefined
-completedAt:    string (ISO)
-```
-
-### SessionType enum
-```
-EASY_RUN | TEMPO_RUN | LONG_RUN | INTERVAL | HILL_REPS | RACE | REST_DAY | CROSS_TRAINING
+```ts
+interface SessionLog {
+  actualDistance?: number    // km — corridas
+  actualDuration?: number    // minutos
+  actualPace?: string        // "MM:SS" — corridas
+  heartRateAvg?: number      // BPM — opcional
+  heartRateMax?: number      // BPM — opcional
+  feeling: 1 | 2 | 3 | 4 | 5
+  notes?: string
+  completedAt: string
+}
 ```
 
 ### Regras de domínio críticas
-1. REST_DAY nunca tem targetDistance nem targetPace — campos desabilitados no form
-2. status 'done' só existe com SessionLog preenchido
-3. status 'skipped' não conta em volume nem streak
-4. REST_DAY conta como dia válido no streak (não quebra)
-5. Pace sempre no formato "MM:SS" (ex: "5:30")
-6. Distâncias sempre em km
-
-Para detalhes completos de domínio, ver [references/domain.md](references/domain.md).
+1. Corridas (EASY, QUALITY, LONG, PACE, RECOVERY, RACE): têm targetDistance, targetPace, environment
+2. STRENGTH_LOWER, STRENGTH_UPPER, MOBILITY: sem campos de corrida — só notas e duração opcional
+3. REST: sem campos — apenas sensação e notas opcionais no log
+4. REST, MOBILITY e STRENGTH_* contam no streak de consistência
+5. Volume semanal de corrida = soma de actualDistance de corridas com status 'done'
+6. Long Run do domingo é o treino mais importante da semana — destaque visual
 
 ---
 
-## Épico 01 — Gestão de sessões
+## SessionTypes que são corridas (helpers)
+```ts
+const RUNNING_TYPES = [
+  SessionType.EASY_RUN,
+  SessionType.QUALITY_RUN,
+  SessionType.LONG_RUN,
+  SessionType.PACE_RUN,
+  SessionType.RECOVERY_RUN,
+  SessionType.RACE,
+];
 
-### Story 01.1 — Criar sessão
+function isRunningSession(type: SessionType): boolean {
+  return RUNNING_TYPES.includes(type);
+}
+```
+
+---
+
+## Épico 00 — Macrociclo e Fases (P0 — implementar primeiro)
+
+### Story 00.1 — Criar macrociclo
+**Arquivo:** `apps/web/src/pages/MacrocyclePage.tsx`
+
+**Acceptance Criteria:**
+- [ ] Form: nome, distância objetivo (km), data da prova (date picker), data de início
+- [ ] Sistema calcula duração total em semanas automaticamente
+- [ ] Apenas 1 macrociclo ativo por vez
+- [ ] POST /api/macrocycles
+- [ ] Após criação, redirect para criação de fases
+
+### Story 00.2 — Criar fases do macrociclo
+**Acceptance Criteria:**
+- [ ] Form: nome, objetivo, data início, data fim, meta de longão (km, opcional), volume alvo semanal (km, opcional)
+- [ ] Fases ordenadas cronologicamente
+- [ ] POST /api/macrocycles/:id/phases
+- [ ] Mínimo 1 fase, máximo 6 fases por macrociclo
+
+### Story 00.3 — Contexto de fase na WeekPage
+**Acceptance Criteria:**
+- [ ] GET /api/macrocycles/active retorna macrociclo ativo + fase atual
+- [ ] WeekPage header exibe: "Semana X de Y · Fase Z — [nome da fase]"
+- [ ] Barra de progresso da fase (semanas concluídas / total de semanas da fase)
+- [ ] Se não há macrociclo ativo, exibe banner convidando a criar um
+
+---
+
+## Épico 01 — Gestão de sessões (revisado)
+
+### Story 01.1 — Criar sessão com form adaptativo
 **Arquivo:** `apps/web/src/pages/NewSessionPage.tsx`
-**Componentes novos:** `SessionForm.tsx`, `SessionTypeSelect.tsx`, `PaceInput.tsx`
 
 **Acceptance Criteria:**
-- [ ] Form com: tipo (select), data (date picker), distância alvo (number), pace alvo (MM:SS), notas (textarea opcional)
-- [ ] Select usa SESSION_TYPE_LABELS de @paceplan/types
-- [ ] targetDistance e targetPace desabilitados quando tipo = REST_DAY
-- [ ] Validação: date obrigatório; distance positivo (exceto REST_DAY); pace regex `/^\d{1,2}:\d{2}$/`
-- [ ] Submit: POST /api/sessions → redirecionar para /week
-- [ ] Sessão criada com status 'planned' por padrão
+- [ ] Select de tipo agrupa por categoria:
+  - Corrida: Easy Run, Quality Run, Long Run, Pace Run, Recovery Run, Race
+  - Força: Força — Inferiores, Força — Superiores
+  - Complementar: Mobilidade, Descanso
+- [ ] Para corridas: exibe distância alvo, pace alvo, ambiente (esteira/rua), notas
+- [ ] Para força: exibe apenas campo de notas livres (ex: "Agachamento 4x12, Leg Press 3x15")
+- [ ] Para MOBILITY: exibe duração estimada (minutos) e notas
+- [ ] Para REST: apenas confirmar — sem campos
+- [ ] Validação: corridas precisam de distância OU duração
+- [ ] POST /api/sessions → redirect /week
 
-### Story 01.2 — Editar sessão
-**Arquivo:** `apps/web/src/pages/SessionDetailPage.tsx`
-
+### Story 01.4 — Log de conclusão (revisado)
 **Acceptance Criteria:**
-- [ ] Form pré-preenchido com dados da sessão existente
-- [ ] Todos os campos editáveis (date, type, distance, pace, notes)
-- [ ] Mudar tipo para REST_DAY limpa e desabilita distance e pace
-- [ ] status 'done': só permite editar notes do plano
-- [ ] Botão "Cancelar" descarta alterações sem salvar
-- [ ] Submit: PATCH /api/sessions/:id
-
-### Story 01.3 — Deletar sessão
-**Acceptance Criteria:**
-- [ ] Botão deletar na tela de detalhes
-- [ ] window.confirm antes de deletar
-- [ ] DELETE /api/sessions/:id → redirecionar para /week
-
-### Story 01.4 — Marcar como concluída
-**Componentes novos:** `LogForm.tsx`, `FeelingScale.tsx`
-
-**Acceptance Criteria:**
-- [ ] Botão "Concluir treino" em sessões planned
-- [ ] Form de log: distância real, pace real, sensação (1–5 visual), notas opcional
-- [ ] Campos pré-preenchidos com valores do plano como sugestão
-- [ ] Submit: POST /api/sessions/:id/log
-- [ ] Card muda para estado "done" (verde + check)
-- [ ] targetDistance e targetPace preservados — não sobrescrever
-- [ ] Sessão done exibe "Ver detalhes" em vez de "Concluir treino"
-
-### Story 01.5 — Pular sessão
-**Acceptance Criteria:**
-- [ ] Botão "Pular treino" em sessões planned
-- [ ] POST /api/sessions/:id/skip
-- [ ] Card muda para "skipped" (cinza + X)
-- [ ] Botão "Reativar" → POST /api/sessions/:id/reactivate
+- [ ] Para corridas: distância real, pace real, BPM médio (opcional), BPM máx (opcional), sensação 1-5, notas
+- [ ] Para força/mobilidade: sensação 1-5, notas livres
+- [ ] Para REST: sensação 1-5, notas opcionais
+- [ ] Campos de corrida pré-preenchidos com valores do plano como sugestão
+- [ ] POST /api/sessions/:id/log
 
 ---
 
-## Épico 02 — Visão semanal
+## Épico 02 — Visão semanal (revisado)
 
-### Story 02.2 — Detalhes de sessão
-**Arquivo:** `apps/web/src/pages/SessionDetailPage.tsx`
-
+### Story 02.1 — WeekPage com contexto de fase
 **Acceptance Criteria:**
-- [ ] Exibe: type, date, targetDistance, targetPace, notes do plano
-- [ ] Se done: exibe SessionLog + delta (actualDistance vs targetDistance, actualPace vs targetPace)
-- [ ] Ações por status:
-  - planned → Concluir / Pular / Editar / Deletar
-  - done → Deletar
-  - skipped → Reativar / Deletar
+- [ ] Header: semana X de Y na fase + nome da fase
+- [ ] Barra de progresso visual da fase
+- [ ] Resumo: KMs de corrida concluídos esta semana, treinos feitos/planejados
+- [ ] Long Run destacado visualmente (card com borda mais grossa ou cor diferente)
+- [ ] Dias sem sessão: botão "+" para adicionar
+
+### Story 02.2 — DayCard por tipo
+**Acceptance Criteria:**
+- [ ] Corridas: ícone Lucide + cor da sessão + distância alvo + pace alvo + badge ambiente (Esteira/Rua)
+- [ ] Força: ícone Dumbbell + cor neutra + resumo das notas se existirem
+- [ ] MOBILITY: ícone Stretching + cor neutra
+- [ ] REST: ícone Moon + visual com opacidade reduzida
+- [ ] Long Run: destaque especial — borda da cor primária ou indicador "Treino principal"
 
 ---
 
-## Épico 03 — Dashboard
+## Épico 03 — Dashboard (revisado)
 
-### Story 03.1 — KPIs de volume
-**Arquivo:** `apps/web/src/pages/DashboardPage.tsx`
-**Componente novo:** `KpiCards.tsx`
-
+### Story 03.1 — KPIs relevantes para o macrociclo
 **Acceptance Criteria:**
-- [ ] Cards: KMs semana atual, KMs mês atual, total treinos no mês
-- [ ] Apenas sessões com status 'done' contam
-- [ ] REST_DAY não soma distância
-- [ ] GET /api/sessions com range dos últimos 30 dias
+- [ ] KMs de corrida nesta semana
+- [ ] Distância do último longão vs meta de longão da fase atual
+- [ ] Streak de consistência geral (corrida + força + mobilidade)
+- [ ] Semanas até a prova (contagem regressiva em dias/semanas)
 
-### Story 03.2 — Streak
+### Story 03.3 — Gráfico de evolução do longão
 **Acceptance Criteria:**
-- [ ] Streak em destaque no dashboard
-- [ ] Incrementa com sessão done ou REST_DAY no dia
-- [ ] Quebra se 1 dia sem registro (exceto REST_DAY)
-- [ ] Recorde pessoal (maior streak histórico)
-- [ ] Cálculo no frontend em `apps/web/src/services/sessionUtils.ts`
-
-### Story 03.3 — Gráfico de volume semanal
-**Componente novo:** `VolumeChart.tsx`
-
-**Acceptance Criteria:**
-- [ ] Barras SVG inline com últimas 8 semanas — ZERO biblioteca de charts
-- [ ] Tooltip ao hover mostra: período + KMs totais
-- [ ] Semana atual destacada com var(--color-primary)
-- [ ] Estado vazio legível
+- [ ] Gráfico de linha com evolução da distância do Long Run semana a semana
+- [ ] Linha pontilhada mostrando meta progressiva da fase
+- [ ] SVG puro — zero biblioteca de charts
+- [ ] Eixo X: semanas · Eixo Y: km
 
 ---
 
-## Endpoints de referência
+## Endpoints da API
 
 ```
+GET    /api/macrocycles/active
+POST   /api/macrocycles
+GET    /api/macrocycles/:id/phases
+POST   /api/macrocycles/:id/phases
+
 GET    /api/sessions?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
 GET    /api/sessions/:id
-POST   /api/sessions                  → CreateSessionPayload
-PATCH  /api/sessions/:id              → UpdateSessionPayload
+POST   /api/sessions
+PATCH  /api/sessions/:id
 DELETE /api/sessions/:id
-POST   /api/sessions/:id/log          → LogSessionPayload
+POST   /api/sessions/:id/log
 POST   /api/sessions/:id/skip
 POST   /api/sessions/:id/reactivate
 ```
 
-Todos os tipos de payload estão em `packages/types/src/index.ts`.
+---
+
+## Migration SQL necessária (002_expanded_schema.sql)
+
+```sql
+-- Novos tipos no enum session_type
+ALTER TYPE session_type ADD VALUE 'QUALITY_RUN';
+ALTER TYPE session_type ADD VALUE 'PACE_RUN';
+ALTER TYPE session_type ADD VALUE 'RECOVERY_RUN';
+ALTER TYPE session_type ADD VALUE 'STRENGTH_LOWER';
+ALTER TYPE session_type ADD VALUE 'STRENGTH_UPPER';
+ALTER TYPE session_type ADD VALUE 'MOBILITY';
+ALTER TYPE session_type ADD VALUE 'REST';
+-- Remover tipos antigos: TEMPO_RUN, INTERVAL, HILL_REPS, REST_DAY, CROSS_TRAINING
+
+-- Novo enum environment
+CREATE TYPE environment AS ENUM ('TREADMILL', 'OUTDOOR');
+
+-- Novas colunas em training_sessions
+ALTER TABLE training_sessions ADD COLUMN environment environment;
+ALTER TABLE training_sessions ADD COLUMN target_duration INTEGER; -- minutos
+
+-- Novas colunas no log
+ALTER TABLE training_sessions ADD COLUMN actual_duration INTEGER;
+ALTER TABLE training_sessions ADD COLUMN heart_rate_avg SMALLINT;
+ALTER TABLE training_sessions ADD COLUMN heart_rate_max SMALLINT;
+
+-- Tabela macrocycles
+CREATE TABLE macrocycles (
+  id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name       VARCHAR(255) NOT NULL,
+  goal_distance NUMERIC(5,2) NOT NULL,
+  race_date  DATE NOT NULL,
+  start_date DATE NOT NULL,
+  is_active  BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Tabela phases
+CREATE TABLE phases (
+  id                    UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  macrocycle_id         UUID NOT NULL REFERENCES macrocycles(id) ON DELETE CASCADE,
+  name                  VARCHAR(255) NOT NULL,
+  objective             TEXT NOT NULL,
+  start_date            DATE NOT NULL,
+  end_date              DATE NOT NULL,
+  order_index           SMALLINT NOT NULL,
+  long_run_target       NUMERIC(5,2),
+  weekly_volume_target  NUMERIC(5,2),
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_phases_macrocycle ON phases(macrocycle_id);
+```
+
+Ver detalhes de domínio em [references/domain.md](references/domain.md).

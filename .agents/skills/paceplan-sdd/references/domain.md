@@ -1,20 +1,21 @@
-# Domínio detalhado — PacePlan
+# Domínio detalhado — PacePlan v2
 
 ## SessionType — referência completa
 
-| Enum | Label | Cor CSS | Tem distância? | Descrição |
-|------|-------|---------|----------------|-----------|
-| EASY_RUN | Easy Run | --color-easy (#22c55e) | sim | Pace conversacional, recuperação ativa |
-| TEMPO_RUN | Tempo Run | --color-tempo (#f97316) | sim | Pace threshold, desconfortável mas sustentável |
-| LONG_RUN | Long Run | --color-long (#8b5cf6) | sim | Longa em pace easy, foco em volume |
-| INTERVAL | Interval | --color-interval (#ef4444) | sim | Tiros curtos alta intensidade com recuperação |
-| HILL_REPS | Hill Reps | --color-hills (#eab308) | sim | Repetições em subida com volta fácil |
-| RACE | Race | --color-race (#ec4899) | sim | Corrida/prova oficial |
-| REST_DAY | Rest Day | --color-rest (#6b7280) | não | Descanso ativo ou total |
-| CROSS_TRAINING | Cross Training | --color-cross (#06b6d4) | sim | Natação, bike, musculação, yoga |
+| Enum | Label | Cor | Ícone Lucide | É corrida? | Tem distância/pace? |
+|------|-------|-----|-------------|------------|---------------------|
+| EASY_RUN | Easy Run | #22c55e | Activity | sim | sim |
+| QUALITY_RUN | Quality Run | #f97316 | Timer | sim | sim |
+| LONG_RUN | Long Run | #8b5cf6 | TrendingUp | sim | sim |
+| PACE_RUN | Pace Run | #ec4899 | Gauge | sim | sim |
+| RECOVERY_RUN | Recovery Run | #06b6d4 | Wind | sim | sim |
+| RACE | Race | #eab308 | Trophy | sim | sim |
+| STRENGTH_LOWER | Força — Inferiores | #6366f1 | Dumbbell | não | não |
+| STRENGTH_UPPER | Força — Superiores | #818cf8 | Dumbbell | não | não |
+| MOBILITY | Mobilidade | #64748b | PersonStanding | não | não |
+| REST | Descanso | #334155 | Moon | não | não |
 
-## FeelingScale — labels
-
+## FeelingScale
 | Valor | Label |
 |-------|-------|
 | 1 | Muito difícil |
@@ -23,73 +24,89 @@
 | 4 | Bem |
 | 5 | Ótimo |
 
-## Regras de negócio — detalhamento
+## Regras de streak
+- Corrida done → conta
+- STRENGTH_* done → conta
+- MOBILITY done → conta
+- REST planned ou done → conta (não quebra)
+- skipped → não conta
+- Dia sem nenhum registro → quebra o streak
 
-### Streak
-- Incrementa quando qualquer sessão `done` OU `REST_DAY` registrado no dia
-- Sessão `skipped` não conta (quebra o streak)
-- Streak quebra se passar 1 dia corrido sem nenhum registro válido
-- Quando quebrado, reinicia do zero no próximo treino
-- `longestStreak` = maior sequência histórica (calculado localmente)
+## Regras de volume semanal de corrida
+- Soma apenas actualDistance de sessões onde isRunningSession(type) = true e status = 'done'
+- STRENGTH_*, MOBILITY, REST não entram no volume de corrida
+- Volume de corrida ≠ total de atividades
 
-### Volume
-- Soma `actualDistance` de sessões com `status: 'done'`
-- REST_DAY nunca entra no cálculo de volume
-- `weeklyKm` = soma da semana atual (segunda a domingo)
-- `monthlyKm` = soma do mês atual
+## Fase atual — como calcular
+```ts
+function getCurrentPhase(phases: Phase[], today: string): Phase | null {
+  return phases.find(p => p.startDate <= today && p.endDate >= today) ?? null;
+}
 
-### Validação de pace
-- Formato: `MM:SS` onde MM pode ter 1 ou 2 dígitos
-- Regex: `/^\d{1,2}:\d{2}$/`
-- Exemplos válidos: "5:30", "10:00", "4:45"
-- Exemplos inválidos: "5:3", "5:300", "pace"
+function getWeekNumberInPhase(phase: Phase, today: string): number {
+  const start = new Date(phase.startDate);
+  const current = new Date(today);
+  const diffDays = Math.floor((current.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.floor(diffDays / 7) + 1;
+}
 
-### Status transitions
+function getTotalWeeksInPhase(phase: Phase): number {
+  const start = new Date(phase.startDate);
+  const end = new Date(phase.endDate);
+  const diffDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.ceil(diffDays / 7);
+}
 ```
-planned → done     (via POST /log)
-planned → skipped  (via POST /skip)
-skipped → planned  (via POST /reactivate)
-done    → (imutável, exceto notas)
-```
 
-## Hooks e serviços disponíveis
+## Hooks disponíveis
 
 ### useSessions(startDate, endDate)
 ```ts
 const {
-  sessions,        // TrainingSession[]
-  loading,         // boolean
-  error,           // string | null
-  createSession,   // (payload: CreateSessionPayload) => Promise<TrainingSession>
-  updateSession,   // (id, payload: UpdateSessionPayload) => Promise<TrainingSession>
-  logSession,      // (id, payload: LogSessionPayload) => Promise<TrainingSession>
-  skipSession,     // (id) => Promise<void>
-  reactivateSession, // (id) => Promise<void>
-  deleteSession,   // (id) => Promise<void>
-  refetch,         // () => Promise<void>
-} = useSessions(startDate, endDate)
+  sessions, loading, error,
+  createSession, updateSession, logSession,
+  skipSession, reactivateSession, deleteSession, refetch,
+} = useSessions(startDate, endDate);
 ```
 
 ### useWeek(initialDate?)
 ```ts
 const {
-  weekStart,       // string YYYY-MM-DD (segunda)
-  weekEnd,         // string YYYY-MM-DD (domingo)
-  days,            // string[] — 7 dias da semana
-  isCurrentWeek,   // boolean
-  goToPrevWeek,    // () => void
-  goToNextWeek,    // () => void
-  goToCurrentWeek, // () => void
-} = useWeek()
+  weekStart, weekEnd, days, isCurrentWeek,
+  goToPrevWeek, goToNextWeek, goToCurrentWeek,
+} = useWeek();
 ```
 
-### sessionUtils.ts
+### useMacrocycle() — a criar
 ```ts
-getTypeColor(type: SessionType): string      // hex da cor
-getTypeLabel(type: SessionType): string      // "Easy Run" etc
-hasDistance(type: SessionType): boolean      // false só para REST_DAY
-formatPace(pace: string): string             // "5:30" → "5:30/km"
-formatDistance(km: number): string           // 10.5 → "10.5 km"
-formatDate(iso: string): string              // "seg., 7 de abr."
+const {
+  macrocycle,       // Macrocycle | null
+  currentPhase,     // Phase | null
+  phases,           // Phase[]
+  weekInPhase,      // number
+  totalWeeksInPhase, // number
+  weeksToRace,      // number
+  loading,
+} = useMacrocycle();
+```
+
+## sessionUtils.ts — funções a atualizar
+
+```ts
+// Verificadores de tipo
+isRunningSession(type: SessionType): boolean
+isStrengthSession(type: SessionType): boolean
+hasDistanceAndPace(type: SessionType): boolean
+
+// Formatadores
+getTypeColor(type: SessionType): string
+getTypeLabel(type: SessionType): string
+getTypeIcon(type: SessionType): LucideIcon  // retorna componente Lucide
+getEnvironmentLabel(env: Environment): string  // "Esteira" | "Rua"
+
+// Utilitários existentes
+formatPace(pace: string): string
+formatDistance(km: number): string
+formatDate(iso: string): string
 isToday(iso: string): boolean
 ```
