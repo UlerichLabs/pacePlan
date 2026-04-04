@@ -9,7 +9,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import type { TrainingSession } from '@paceplan/types';
-import { FEELING_LABELS } from '@paceplan/types';
+import { Environment, FEELING_LABELS } from '@paceplan/types';
 import { LogForm } from '../components/SessionLog/LogForm';
 import { sessionService } from '../services/sessionService';
 import {
@@ -18,29 +18,35 @@ import {
   formatDistance,
   formatPace,
   formatPaceDelta,
+  getEnvironmentLabel,
   getTypeColor,
   getTypeLabel,
-  hasDistance,
   isPaceFaster,
+  isRunningSession,
 } from '../services/sessionUtils';
 
 const PAGE_TITLE = 'Detalhes do treino';
 const SECTION_PLANO = 'Plano';
-const SECTION_RESULTADO = 'Resultado';
+const SECTION_RESULTADO = 'Treino realizado';
 const SECTION_CONCLUIR = 'Concluir treino';
 const LABEL_DATA = 'Data';
 const LABEL_DISTANCIA_ALVO = 'Distância alvo';
 const LABEL_PACE_ALVO = 'Pace alvo';
+const LABEL_AMBIENTE = 'Ambiente';
 const LABEL_NOTAS = 'Notas';
 const LABEL_DISTANCIA_REAL = 'Distância real';
 const LABEL_PACE_REAL = 'Pace real';
+const LABEL_BPM_AVG = 'BPM médio';
+const LABEL_BPM_MAX = 'BPM máximo';
 const LABEL_SENSACAO = 'Sensação';
+const LABEL_CONCLUSAO = 'Concluído em';
 const BTN_CONCLUIR = 'Concluir treino';
 const BTN_PULAR = 'Pular treino';
 const BTN_EDITAR = 'Editar';
 const BTN_DELETAR = 'Deletar treino';
 const BTN_REATIVAR = 'Reativar treino';
-const CONFIRM_DELETE = 'Tem certeza que deseja deletar este treino?';
+const CONFIRM_SKIP = 'Marcar este treino como pulado?';
+const CONFIRM_DELETE = 'Deletar este treino? Esta ação não pode ser desfeita.';
 const ERR_LOAD = 'Erro ao carregar sessão';
 const ERR_DELETE = 'Erro ao deletar sessão';
 const ERR_SKIP = 'Erro ao pular sessão';
@@ -49,12 +55,12 @@ const MSG_LOADING = 'Carregando...';
 const MSG_NOT_FOUND = 'Sessão não encontrada';
 
 const STATUS_CONFIG = {
-  planned: { label: 'Planejado', bg: 'rgba(255,255,255,.07)',    color: 'var(--text-muted)',  border: 'rgba(255,255,255,.1)'  },
-  done:    { label: 'Concluído', bg: 'rgba(34,197,94,.14)',      color: '#4ade80',             border: 'rgba(34,197,94,.2)'   },
-  skipped: { label: 'Pulado',    bg: 'rgba(239,68,68,.12)',      color: '#f87171',             border: 'rgba(239,68,68,.15)'  },
+  planned: { label: 'Planejado', bg: 'rgba(255,255,255,.07)',  color: 'var(--text-muted)', border: 'rgba(255,255,255,.1)'  },
+  done:    { label: 'Concluído', bg: 'rgba(34,197,94,.14)',    color: '#4ade80',            border: 'rgba(34,197,94,.2)'   },
+  skipped: { label: 'Pulado',    bg: 'rgba(239,68,68,.12)',    color: '#f87171',            border: 'rgba(239,68,68,.15)'  },
 };
 
-function sectionLabel(text: string) {
+function SectionLabel({ text }: { text: string }) {
   return (
     <p style={{
       fontSize: 10, fontWeight: 600, letterSpacing: '.08em',
@@ -95,6 +101,66 @@ function MetaRow({ label, value, children }: { label: string; value: string; chi
   );
 }
 
+function EnvironmentBadge({ env }: { env: Environment }) {
+  const isOutdoor = env === Environment.OUTDOOR;
+  return (
+    <span style={{
+      fontSize: 10, fontWeight: 600, padding: '3px 9px', borderRadius: 7,
+      background: isOutdoor ? 'rgba(34,197,94,.12)' : 'rgba(99,102,241,.12)',
+      color: isOutdoor ? '#4ade80' : '#a5b4fc',
+      border: `1px solid ${isOutdoor ? 'rgba(34,197,94,.2)' : 'rgba(99,102,241,.2)'}`,
+    }}>
+      {getEnvironmentLabel(env)}
+    </span>
+  );
+}
+
+function FeelingCircles({ feeling }: { feeling: 1 | 2 | 3 | 4 | 5 }) {
+  return (
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+      {([1, 2, 3, 4, 5] as const).map((f) => (
+        <div
+          key={f}
+          style={{
+            width: 10, height: 10, borderRadius: '50%',
+            background: f <= feeling ? 'var(--color-primary)' : 'rgba(255,255,255,.12)',
+            border: f <= feeling ? 'none' : '1px solid rgba(255,255,255,.15)',
+          }}
+        />
+      ))}
+      <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 4 }}>
+        {FEELING_LABELS[feeling]}
+      </span>
+    </div>
+  );
+}
+
+function formatCompletedAt(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleString('pt-BR', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
+const headerStyle: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: 12,
+  padding: '14px 16px',
+  borderBottom: '1px solid rgba(255,255,255,.08)',
+  background: 'rgba(255,255,255,.06)',
+  backdropFilter: 'blur(24px)',
+  WebkitBackdropFilter: 'blur(24px)',
+  flexShrink: 0,
+};
+
+const glassCard: React.CSSProperties = {
+  borderRadius: 14, overflow: 'hidden',
+  background: 'var(--glass-bg)',
+  border: '1px solid var(--glass-border)',
+  backdropFilter: 'blur(24px)',
+  WebkitBackdropFilter: 'blur(24px)',
+};
+
 export function SessionDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -110,7 +176,7 @@ export function SessionDetailPage() {
     let cancelled = false;
     setLoading(true);
     setFetchError(null);
-    void sessionService.get(id ?? '').then(data => {
+    void sessionService.get(id ?? '').then((data) => {
       if (!cancelled) { setSession(data); setLoading(false); }
     }).catch((err: unknown) => {
       if (!cancelled) {
@@ -137,6 +203,7 @@ export function SessionDetailPage() {
 
   async function handleSkip() {
     if (session == null) return;
+    if (!window.confirm(CONFIRM_SKIP)) return;
     setActionLoading(true);
     setActionError(null);
     try {
@@ -167,16 +234,6 @@ export function SessionDetailPage() {
     setSession(updated);
     setShowLogForm(false);
   }
-
-  const headerStyle = {
-    display: 'flex', alignItems: 'center', gap: 12,
-    padding: '14px 16px',
-    borderBottom: '1px solid rgba(255,255,255,.08)',
-    background: 'rgba(255,255,255,.06)',
-    backdropFilter: 'blur(24px)',
-    WebkitBackdropFilter: 'blur(24px)',
-    flexShrink: 0,
-  };
 
   if (loading) {
     return (
@@ -213,7 +270,7 @@ export function SessionDetailPage() {
   const color = getTypeColor(session.type);
   const Icon = SESSION_ICONS[session.type];
   const statusCfg = STATUS_CONFIG[session.status];
-  const withDist = hasDistance(session.type);
+  const withDist = isRunningSession(session.type);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -236,19 +293,14 @@ export function SessionDetailPage() {
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 16, paddingBottom: 32 }}>
 
-        {sectionLabel(SECTION_PLANO)}
+        <SectionLabel text={SECTION_PLANO} />
 
-        <div style={{
-          borderRadius: 14, overflow: 'hidden',
-          background: 'var(--glass-bg)',
-          border: '1px solid var(--glass-border)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-        }}>
+        <div style={glassCard}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 12,
             padding: '14px 14px 14px 18px',
             position: 'relative',
+            borderBottom: '1px solid rgba(255,255,255,.05)',
           }}>
             <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: color, borderRadius: '3px 0 0 3px' }} />
             <div style={{
@@ -258,7 +310,7 @@ export function SessionDetailPage() {
             }}>
               <Icon size={20} color={color} />
             </div>
-            <div>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>
                 {getTypeLabel(session.type)}
               </div>
@@ -266,6 +318,9 @@ export function SessionDetailPage() {
                 {formatDate(session.date)}
               </div>
             </div>
+            {session.environment != null && (
+              <EnvironmentBadge env={session.environment} />
+            )}
           </div>
 
           <div style={{ padding: '0 14px 4px' }}>
@@ -275,6 +330,15 @@ export function SessionDetailPage() {
             )}
             {withDist && session.targetPace != null && (
               <MetaRow label={LABEL_PACE_ALVO} value={formatPace(session.targetPace)} />
+            )}
+            {session.environment != null && (
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,.05)',
+              }}>
+                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{LABEL_AMBIENTE}</span>
+                <EnvironmentBadge env={session.environment} />
+              </div>
             )}
             {session.notes != null && session.notes !== '' && (
               <div style={{ padding: '10px 0' }}>
@@ -293,54 +357,56 @@ export function SessionDetailPage() {
           const log = session.log;
           return (
             <>
-              {sectionLabel(SECTION_RESULTADO)}
-              <div style={{
-                borderRadius: 14, overflow: 'hidden',
-                background: 'var(--glass-bg)',
-                border: '1px solid rgba(34,197,94,.18)',
-                backdropFilter: 'blur(24px)',
-                WebkitBackdropFilter: 'blur(24px)',
-              }}>
+              <SectionLabel text={SECTION_RESULTADO} />
+              <div style={{ ...glassCard, border: '1px solid rgba(34,197,94,.18)' }}>
                 <div style={{ padding: '4px 14px 4px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,.05)' }}>
-                    <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{LABEL_DISTANCIA_REAL}</span>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-                        {log.actualDistance != null ? formatDistance(log.actualDistance) : '—'}
-                      </span>
-                      {withDist && session.targetDistance != null && log.actualDistance != null && (() => {
-                        const diff = log.actualDistance - session.targetDistance;
-                        const pos = diff >= 0;
-                        const text = `${pos ? '+' : '−'}${Math.abs(diff).toFixed(1)} km`;
-                        return <DeltaBadge text={text} positive={pos} />;
-                      })()}
-                    </div>
-                  </div>
+                  {withDist && (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,.05)' }}>
+                        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{LABEL_DISTANCIA_REAL}</span>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {log.actualDistance != null ? formatDistance(log.actualDistance) : '—'}
+                          </span>
+                          {session.targetDistance != null && log.actualDistance != null && (() => {
+                            const diff = log.actualDistance - session.targetDistance;
+                            const pos = diff >= 0;
+                            return <DeltaBadge text={`${pos ? '+' : '−'}${Math.abs(diff).toFixed(1)} km`} positive={pos} />;
+                          })()}
+                        </div>
+                      </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,.05)' }}>
-                    <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{LABEL_PACE_REAL}</span>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-                        {log.actualPace != null ? formatPace(log.actualPace) : '—'}
-                      </span>
-                      {withDist && session.targetPace != null && log.actualPace != null && (
-                        <DeltaBadge
-                          text={formatPaceDelta(log.actualPace, session.targetPace)}
-                          positive={isPaceFaster(log.actualPace, session.targetPace)}
-                        />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,.05)' }}>
+                        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{LABEL_PACE_REAL}</span>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {log.actualPace != null ? formatPace(log.actualPace) : '—'}
+                          </span>
+                          {session.targetPace != null && log.actualPace != null && (
+                            <DeltaBadge
+                              text={formatPaceDelta(log.actualPace, session.targetPace)}
+                              positive={isPaceFaster(log.actualPace, session.targetPace)}
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      {log.heartRateAvg != null && (
+                        <MetaRow label={LABEL_BPM_AVG} value={`${log.heartRateAvg} bpm`} />
                       )}
-                    </div>
-                  </div>
+                      {log.heartRateMax != null && (
+                        <MetaRow label={LABEL_BPM_MAX} value={`${log.heartRateMax} bpm`} />
+                      )}
+                    </>
+                  )}
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,.05)' }}>
                     <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{LABEL_SENSACAO}</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-                      {FEELING_LABELS[log.feeling]}
-                    </span>
+                    <FeelingCircles feeling={log.feeling} />
                   </div>
 
                   {log.notes != null && log.notes !== '' && (
-                    <div style={{ padding: '10px 0' }}>
+                    <div style={{ padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,.05)' }}>
                       <span style={{ fontSize: 11, color: 'var(--text-hint)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600 }}>
                         {LABEL_NOTAS}
                       </span>
@@ -349,6 +415,12 @@ export function SessionDetailPage() {
                       </p>
                     </div>
                   )}
+
+                  <div style={{ padding: '10px 0' }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-hint)' }}>
+                      {LABEL_CONCLUSAO}: {formatCompletedAt(log.completedAt)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </>
@@ -357,9 +429,10 @@ export function SessionDetailPage() {
 
         {session.status === 'planned' && showLogForm && (
           <>
-            {sectionLabel(SECTION_CONCLUIR)}
+            <SectionLabel text={SECTION_CONCLUIR} />
             <LogForm
               sessionId={session.id}
+              sessionType={session.type}
               targetDistance={session.targetDistance}
               targetPace={session.targetPace}
               onSuccess={handleLogSuccess}
