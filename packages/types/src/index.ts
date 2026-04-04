@@ -2,46 +2,63 @@
 
 export enum SessionType {
   EASY_RUN = "EASY_RUN",
-  TEMPO_RUN = "TEMPO_RUN",
+  QUALITY_RUN = "QUALITY_RUN",
   LONG_RUN = "LONG_RUN",
-  INTERVAL = "INTERVAL",
-  HILL_REPS = "HILL_REPS",
+  PACE_RUN = "PACE_RUN",
+  RECOVERY_RUN = "RECOVERY_RUN",
   RACE = "RACE",
-  REST_DAY = "REST_DAY",
-  CROSS_TRAINING = "CROSS_TRAINING",
+  STRENGTH_LOWER = "STRENGTH_LOWER",
+  STRENGTH_UPPER = "STRENGTH_UPPER",
+  MOBILITY = "MOBILITY",
+  REST = "REST",
 }
 
 export const SESSION_TYPE_LABELS: Record<SessionType, string> = {
   [SessionType.EASY_RUN]: "Easy Run",
-  [SessionType.TEMPO_RUN]: "Tempo Run",
+  [SessionType.QUALITY_RUN]: "Quality Run",
   [SessionType.LONG_RUN]: "Long Run",
-  [SessionType.INTERVAL]: "Interval",
-  [SessionType.HILL_REPS]: "Hill Reps",
+  [SessionType.PACE_RUN]: "Pace Run",
+  [SessionType.RECOVERY_RUN]: "Recovery Run",
   [SessionType.RACE]: "Race",
-  [SessionType.REST_DAY]: "Rest Day",
-  [SessionType.CROSS_TRAINING]: "Cross Training",
+  [SessionType.STRENGTH_LOWER]: "Força — Inferiores",
+  [SessionType.STRENGTH_UPPER]: "Força — Superiores",
+  [SessionType.MOBILITY]: "Mobilidade",
+  [SessionType.REST]: "Descanso",
 };
 
 export const SESSION_TYPE_COLORS: Record<SessionType, string> = {
-  [SessionType.EASY_RUN]: "#22C55E",
-  [SessionType.TEMPO_RUN]: "#F97316",
-  [SessionType.LONG_RUN]: "#8B5CF6",
-  [SessionType.INTERVAL]: "#EF4444",
-  [SessionType.HILL_REPS]: "#EAB308",
-  [SessionType.RACE]: "#EC4899",
-  [SessionType.REST_DAY]: "#6B7280",
-  [SessionType.CROSS_TRAINING]: "#06B6D4",
+  [SessionType.EASY_RUN]: "#22c55e",
+  [SessionType.QUALITY_RUN]: "#f97316",
+  [SessionType.LONG_RUN]: "#8b5cf6",
+  [SessionType.PACE_RUN]: "#ec4899",
+  [SessionType.RECOVERY_RUN]: "#06b6d4",
+  [SessionType.RACE]: "#eab308",
+  [SessionType.STRENGTH_LOWER]: "#6366f1",
+  [SessionType.STRENGTH_UPPER]: "#818cf8",
+  [SessionType.MOBILITY]: "#64748b",
+  [SessionType.REST]: "#334155",
 };
 
-export const SESSION_TYPES_WITH_DISTANCE: SessionType[] = [
+export const RUNNING_TYPES: SessionType[] = [
   SessionType.EASY_RUN,
-  SessionType.TEMPO_RUN,
+  SessionType.QUALITY_RUN,
   SessionType.LONG_RUN,
-  SessionType.INTERVAL,
-  SessionType.HILL_REPS,
+  SessionType.PACE_RUN,
+  SessionType.RECOVERY_RUN,
   SessionType.RACE,
-  SessionType.CROSS_TRAINING,
 ];
+
+export const STRENGTH_TYPES: SessionType[] = [
+  SessionType.STRENGTH_LOWER,
+  SessionType.STRENGTH_UPPER,
+];
+
+// ─── Environment ──────────────────────────────────────────────────────────────
+
+export enum Environment {
+  TREADMILL = "TREADMILL",
+  OUTDOOR = "OUTDOOR",
+}
 
 // ─── Session Status ───────────────────────────────────────────────────────────
 
@@ -62,8 +79,11 @@ export const FEELING_LABELS: Record<FeelingScale, string> = {
 // ─── Session Log ──────────────────────────────────────────────────────────────
 
 export interface SessionLog {
-  actualDistance: number;
-  actualPace: string;
+  actualDistance?: number | undefined;
+  actualDuration?: number | undefined;
+  actualPace?: string | undefined;
+  heartRateAvg?: number | undefined;
+  heartRateMax?: number | undefined;
   feeling: FeelingScale;
   notes?: string | undefined;
   completedAt: string;
@@ -76,7 +96,9 @@ export interface TrainingSession {
   date: string;
   type: SessionType;
   targetDistance?: number | undefined;
+  targetDuration?: number | undefined;
   targetPace?: string | undefined;
+  environment?: Environment | undefined;
   notes?: string | undefined;
   status: SessionStatus;
   log?: SessionLog | undefined;
@@ -84,17 +106,31 @@ export interface TrainingSession {
   updatedAt: string;
 }
 
-// ─── Training Cycle (Fase 2) ──────────────────────────────────────────────────
+// ─── Macrocycle ───────────────────────────────────────────────────────────────
 
-export interface TrainingCycle {
+export interface Macrocycle {
   id: string;
   name: string;
-  goal: string;
+  goalDistance: number;
+  raceDate: string;
   startDate: string;
-  endDate: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+// ─── Phase ────────────────────────────────────────────────────────────────────
+
+export interface Phase {
+  id: string;
+  macrocycleId: string;
+  name: string;
+  objective: string;
+  startDate: string;
+  endDate: string;
+  order: number;
+  longRunTarget?: number | undefined;
+  weeklyVolumeTarget?: number | undefined;
 }
 
 // ─── API Payloads ─────────────────────────────────────────────────────────────
@@ -103,7 +139,9 @@ export interface CreateSessionPayload {
   date: string;
   type: SessionType;
   targetDistance?: number | undefined;
+  targetDuration?: number | undefined;
   targetPace?: string | undefined;
+  environment?: Environment | undefined;
   notes?: string | undefined;
 }
 
@@ -111,22 +149,20 @@ export interface UpdateSessionPayload {
   date?: string | undefined;
   type?: SessionType | undefined;
   targetDistance?: number | undefined;
+  targetDuration?: number | undefined;
   targetPace?: string | undefined;
+  environment?: Environment | undefined;
   notes?: string | undefined;
 }
 
 export interface LogSessionPayload {
-  actualDistance: number;
-  actualPace: string;
+  actualDistance?: number | undefined;
+  actualDuration?: number | undefined;
+  actualPace?: string | undefined;
+  heartRateAvg?: number | undefined;
+  heartRateMax?: number | undefined;
   feeling: FeelingScale;
   notes?: string | undefined;
-}
-
-export interface CreateCyclePayload {
-  name: string;
-  goal: string;
-  startDate: string;
-  endDate: string;
 }
 
 // ─── API Response Wrappers ────────────────────────────────────────────────────
