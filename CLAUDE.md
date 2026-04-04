@@ -174,25 +174,27 @@ Cada página tem um comentário `// TODO (CC):` explicando exatamente o que impl
 
 ## SessionType — referência rápida
 
-| Tipo | Cor CSS var | Tem distância? |
-|------|------------|----------------|
-| EASY_RUN | `--color-easy` (#22c55e) | sim |
-| TEMPO_RUN | `--color-tempo` (#f97316) | sim |
-| LONG_RUN | `--color-long` (#8b5cf6) | sim |
-| INTERVAL | `--color-interval` (#ef4444) | sim |
-| HILL_REPS | `--color-hills` (#eab308) | sim |
-| RACE | `--color-race` (#ec4899) | sim |
-| REST_DAY | `--color-rest` (#6b7280) | não |
-| CROSS_TRAINING | `--color-cross` (#06b6d4) | sim |
+| Tipo | Cor | Tem distância? |
+|------|-----|----------------|
+| EASY_RUN | #22c55e | sim |
+| QUALITY_RUN | #f97316 | sim |
+| LONG_RUN | #8b5cf6 | sim |
+| PACE_RUN | #ec4899 | sim |
+| RECOVERY_RUN | #06b6d4 | sim |
+| RACE | #eab308 | sim |
+| STRENGTH_LOWER | #6366f1 | não |
+| STRENGTH_UPPER | #818cf8 | não |
+| MOBILITY | #64748b | não |
+| REST | #334155 | não |
 
 ---
 
 ## Domínio — regras críticas
 
-1. `REST_DAY` nunca tem `targetDistance` nem `targetPace`
+1. `REST`, `STRENGTH_LOWER`, `STRENGTH_UPPER`, `MOBILITY` nunca têm `targetDistance` nem `targetPace`
 2. `status: 'done'` só existe com `SessionLog` preenchido
 3. `status: 'skipped'` não conta em volume nem streak
-4. `REST_DAY` conta como dia válido no streak
+4. `REST` conta como dia válido no streak
 5. Pace sempre no formato `"MM:SS"` (ex: `"5:30"`)
 6. Distâncias sempre em km com 1 ou 2 casas decimais
 

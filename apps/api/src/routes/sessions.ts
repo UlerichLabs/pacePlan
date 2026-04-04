@@ -12,9 +12,7 @@ import {
   reactivateSession,
   deleteSession,
 } from "@paceplan/db";
-
-const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-const PACE_REGEX = /^\d{1,2}:\d{2}$/;
+import { DATE_REGEX, PACE_REGEX } from "../utils/validation.js";
 
 const createSchema = z.object({
   date: z.string().regex(DATE_REGEX, "Data deve estar no formato YYYY-MM-DD"),

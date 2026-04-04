@@ -3,12 +3,12 @@ import { z } from "zod";
 import { sql } from "@paceplan/db";
 import {
   findActiveMacrocycle,
+  findMacrocycleById,
   createMacrocycle,
   findPhasesByMacrocycle,
   createPhase,
 } from "@paceplan/db";
-
-const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+import { DATE_REGEX } from "../utils/validation.js";
 
 const createMacrocycleSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
@@ -47,7 +47,9 @@ export async function macrocyclesRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.get<{ Params: { id: string } }>("/:id/phases", async (req, reply) => {
-    const phases = await findPhasesByMacrocycle(sql, req.params.id);
+    const macrocycle = await findMacrocycleById(sql, req.params.id);
+    if (!macrocycle) return reply.notFound("Macrociclo não encontrado");
+    const phases = await findPhasesByMacrocycle(sql, macrocycle.id);
     return reply.send({ data: phases });
   });
 

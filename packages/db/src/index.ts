@@ -14,6 +14,7 @@ export {
 
 export {
   findActiveMacrocycle,
+  findMacrocycleById,
   createMacrocycle,
   findPhasesByMacrocycle,
   createPhase,

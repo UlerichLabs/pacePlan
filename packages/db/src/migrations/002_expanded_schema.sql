@@ -25,8 +25,10 @@ ALTER TABLE training_sessions
   ADD COLUMN IF NOT EXISTS target_duration  INTEGER,
   ADD COLUMN IF NOT EXISTS actual_duration  INTEGER,
   ADD COLUMN IF NOT EXISTS heart_rate_avg   SMALLINT,
-  ADD COLUMN IF NOT EXISTS heart_rate_max   SMALLINT,
-  ADD COLUMN IF NOT EXISTS ai_report        TEXT;
+  ADD COLUMN IF NOT EXISTS heart_rate_max   SMALLINT;
+
+-- Remove coluna adicionada por engano (sem contraparte no domínio TypeScript)
+ALTER TABLE training_sessions DROP COLUMN IF EXISTS ai_report;
 
 -- ─── Tabela macrocycles ───────────────────────────────────────────────────────
 
