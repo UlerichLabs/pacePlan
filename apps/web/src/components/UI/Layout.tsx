@@ -4,7 +4,7 @@ import { Activity, CalendarDays, ScrollText } from 'lucide-react';
 
 const NAV_ITEMS = [
   { to: '/week',      label: 'Semana',    Icon: CalendarDays },
-  { to: '/dashboard', label: 'Stats',     Icon: Activity },
+  { to: '/dashboard', label: 'Dashboard',  Icon: Activity },
   { to: '/history',   label: 'Histórico', Icon: ScrollText },
 ] as const;
 
