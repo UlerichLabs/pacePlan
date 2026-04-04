@@ -306,9 +306,9 @@ export function SessionDetailPage() {
                     <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{LABEL_DISTANCIA_REAL}</span>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-                        {formatDistance(log.actualDistance)}
+                        {log.actualDistance != null ? formatDistance(log.actualDistance) : '—'}
                       </span>
-                      {withDist && session.targetDistance != null && (() => {
+                      {withDist && session.targetDistance != null && log.actualDistance != null && (() => {
                         const diff = log.actualDistance - session.targetDistance;
                         const pos = diff >= 0;
                         const text = `${pos ? '+' : '−'}${Math.abs(diff).toFixed(1)} km`;
@@ -321,9 +321,9 @@ export function SessionDetailPage() {
                     <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{LABEL_PACE_REAL}</span>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-                        {formatPace(log.actualPace)}
+                        {log.actualPace != null ? formatPace(log.actualPace) : '—'}
                       </span>
-                      {withDist && session.targetPace != null && (
+                      {withDist && session.targetPace != null && log.actualPace != null && (
                         <DeltaBadge
                           text={formatPaceDelta(log.actualPace, session.targetPace)}
                           positive={isPaceFaster(log.actualPace, session.targetPace)}

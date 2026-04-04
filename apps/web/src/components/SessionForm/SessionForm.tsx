@@ -47,7 +47,7 @@ export function SessionForm({ onSubmit, onCancel, isLoading, defaultDate }: Sess
 
   function handleTypeChange(t: SessionType) {
     setType(t);
-    if (t === SessionType.REST_DAY) {
+    if (t === SessionType.REST) {
       setDistanceInput('');
       setPace('');
     }

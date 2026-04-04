@@ -1,29 +1,47 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
-  Bike,
+  Dumbbell,
+  Gauge,
   Moon,
-  Mountain,
+  PersonStanding,
   Timer,
   Trophy,
   TrendingUp,
-  Zap,
+  Wind,
 } from 'lucide-react';
-import { SESSION_TYPE_COLORS, SESSION_TYPE_LABELS, SessionType } from '@paceplan/types';
+import {
+  Environment,
+  RUNNING_TYPES,
+  SESSION_TYPE_COLORS,
+  SESSION_TYPE_LABELS,
+  SessionType,
+  STRENGTH_TYPES,
+} from '@paceplan/types';
 
 export const SESSION_ICONS: Record<SessionType, LucideIcon> = {
   [SessionType.EASY_RUN]:       Activity,
-  [SessionType.TEMPO_RUN]:      Timer,
+  [SessionType.QUALITY_RUN]:    Timer,
   [SessionType.LONG_RUN]:       TrendingUp,
-  [SessionType.INTERVAL]:       Zap,
-  [SessionType.HILL_REPS]:      Mountain,
+  [SessionType.PACE_RUN]:       Gauge,
+  [SessionType.RECOVERY_RUN]:   Wind,
   [SessionType.RACE]:           Trophy,
-  [SessionType.REST_DAY]:       Moon,
-  [SessionType.CROSS_TRAINING]: Bike,
+  [SessionType.STRENGTH_LOWER]: Dumbbell,
+  [SessionType.STRENGTH_UPPER]: Dumbbell,
+  [SessionType.MOBILITY]:       PersonStanding,
+  [SessionType.REST]:           Moon,
 };
 
+export function isRunningSession(type: SessionType): boolean {
+  return RUNNING_TYPES.includes(type);
+}
+
+export function isStrengthSession(type: SessionType): boolean {
+  return STRENGTH_TYPES.includes(type);
+}
+
 export function getTypeColor(type: SessionType): string {
-  return SESSION_TYPE_COLORS[type].toLowerCase();
+  return SESSION_TYPE_COLORS[type];
 }
 
 export function getTypeLabel(type: SessionType): string {
@@ -31,7 +49,11 @@ export function getTypeLabel(type: SessionType): string {
 }
 
 export function hasDistance(type: SessionType): boolean {
-  return type !== SessionType.REST_DAY;
+  return isRunningSession(type);
+}
+
+export function getEnvironmentLabel(env: Environment): string {
+  return env === Environment.TREADMILL ? 'Esteira' : 'Rua';
 }
 
 export function formatPace(pace: string): string {
