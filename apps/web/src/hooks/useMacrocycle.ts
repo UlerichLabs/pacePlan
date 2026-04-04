@@ -1,14 +1,18 @@
+import { useCallback, useEffect, useState } from 'react';
 import type { Macrocycle, Phase } from '@paceplan/types';
-import { MACROCYCLE_MOCK, PHASES_MOCK } from '../mocks/macrocycleMock';
+import { macrocycleService } from '../services/macrocycleService';
 
 export interface MacrocycleContext {
-  macrocycle: Macrocycle;
+  macrocycle: Macrocycle | null;
   phases: Phase[];
   currentPhase: Phase | null;
   weekInPhase: number;
   totalWeeksInPhase: number;
   weeksToRace: number;
   phaseProgressPct: number;
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
 }
 
 function getCurrentPhase(phases: Phase[], today: string): Phase | null {
@@ -46,14 +50,39 @@ function getPhaseProgressPct(phase: Phase, today: string): number {
 }
 
 export function useMacrocycle(): MacrocycleContext {
-  const today = new Date().toISOString().slice(0, 10);
-  const macrocycle = MACROCYCLE_MOCK;
-  const phases = PHASES_MOCK;
-  const currentPhase = getCurrentPhase(phases, today);
+  const [macrocycle, setMacrocycle] = useState<Macrocycle | null>(null);
+  const [phases, setPhases] = useState<Phase[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const weekInPhase = currentPhase ? getWeekNumberInPhase(currentPhase, today) : 1;
+  const fetchMacrocycle = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await macrocycleService.getActive();
+      if (data) {
+        setMacrocycle(data.macrocycle);
+        setPhases(data.phases);
+      } else {
+        setMacrocycle(null);
+        setPhases([]);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao carregar macrociclo');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchMacrocycle();
+  }, [fetchMacrocycle]);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const currentPhase = macrocycle ? getCurrentPhase(phases, today) : null;
+  const weekInPhase = currentPhase ? getWeekNumberInPhase(currentPhase, today) : 0;
   const totalWeeksInPhase = currentPhase ? getTotalWeeksInPhase(currentPhase) : 0;
-  const weeksToRace = getWeeksToRace(macrocycle.raceDate, today);
+  const weeksToRace = macrocycle ? getWeeksToRace(macrocycle.raceDate, today) : 0;
   const phaseProgressPct = currentPhase ? getPhaseProgressPct(currentPhase, today) : 0;
 
   return {
@@ -64,5 +93,8 @@ export function useMacrocycle(): MacrocycleContext {
     totalWeeksInPhase,
     weeksToRace,
     phaseProgressPct,
+    loading,
+    error,
+    refetch: fetchMacrocycle,
   };
 }

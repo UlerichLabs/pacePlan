@@ -1,11 +1,12 @@
 import { type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Activity, CalendarDays, ScrollText } from 'lucide-react';
+import { Activity, CalendarDays, ScrollText, Target } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { to: '/week',      label: 'Semana',    Icon: CalendarDays },
-  { to: '/dashboard', label: 'Dashboard',  Icon: Activity },
-  { to: '/history',   label: 'Histórico', Icon: ScrollText },
+  { to: '/week',       label: 'Semana',    Icon: CalendarDays },
+  { to: '/dashboard',  label: 'Dashboard', Icon: Activity     },
+  { to: '/history',    label: 'Histórico', Icon: ScrollText   },
+  { to: '/macrocycle', label: 'Plano',     Icon: Target       },
 ] as const;
 
 function SidebarContent() {

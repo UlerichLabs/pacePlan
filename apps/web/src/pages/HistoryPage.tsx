@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Heart, ScrollText } from 'lucide-react';
 import type { TrainingSession } from '@paceplan/types';
 import { FEELING_LABELS } from '@paceplan/types';
-import { CURRENT_WEEK_SESSIONS } from '../mocks/sessionsMock';
+import { useSessions } from '../hooks/useSessions';
 import {
   SESSION_ICONS,
   formatDate,
@@ -21,6 +21,7 @@ const FILTER_RUN = 'Corrida';
 const FILTER_STRENGTH = 'Força & Mob';
 const EMPTY_TITLE = 'Nenhum treino registrado ainda';
 const EMPTY_SUBTITLE = 'Conclua seus primeiros treinos para ver o histórico aqui';
+const LABEL_CARREGANDO = 'Carregando...';
 
 type FilterKey = 'all' | 'run' | 'strength';
 
@@ -30,28 +31,21 @@ const FILTER_OPTIONS: { key: FilterKey; label: string }[] = [
   { key: 'strength', label: FILTER_STRENGTH },
 ];
 
-const doneSessions: TrainingSession[] = [...CURRENT_WEEK_SESSIONS]
-  .filter((s) => s.status === 'done')
-  .sort((a, b) => (a.date < b.date ? 1 : -1));
-
 function applyFilter(sessions: TrainingSession[], filter: FilterKey): TrainingSession[] {
-  if (filter === 'run') return sessions.filter((s) => isRunningSession(s.type));
-  if (filter === 'strength') return sessions.filter((s) => isStrengthSession(s.type) || (!isRunningSession(s.type) && !isStrengthSession(s.type)));
+  if (filter === 'run') return sessions.filter(s => isRunningSession(s.type));
+  if (filter === 'strength') return sessions.filter(s => isStrengthSession(s.type) || (!isRunningSession(s.type) && !isStrengthSession(s.type)));
   return sessions;
 }
 
 function FeelingDots({ feeling }: { feeling: 1 | 2 | 3 | 4 | 5 }) {
   return (
     <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-      {([1, 2, 3, 4, 5] as const).map((f) => (
-        <div
-          key={f}
-          style={{
-            width: 8, height: 8, borderRadius: '50%',
-            background: f <= feeling ? 'var(--color-primary)' : 'rgba(255,255,255,.10)',
-            border: f <= feeling ? 'none' : '1px solid rgba(255,255,255,.14)',
-          }}
-        />
+      {([1, 2, 3, 4, 5] as const).map(f => (
+        <div key={f} style={{
+          width: 8, height: 8, borderRadius: '50%',
+          background: f <= feeling ? 'var(--color-primary)' : 'rgba(255,255,255,.10)',
+          border: f <= feeling ? 'none' : '1px solid rgba(255,255,255,.14)',
+        }} />
       ))}
       <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 4 }}>
         {FEELING_LABELS[feeling]}
@@ -130,6 +124,19 @@ export function HistoryPage() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<FilterKey>('all');
 
+  const [rangeStart] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 180);
+    return d.toISOString().slice(0, 10);
+  });
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { sessions, loading, error } = useSessions(rangeStart, today);
+
+  const doneSessions = sessions
+    .filter(s => s.status === 'done')
+    .sort((a, b) => (a.date < b.date ? 1 : -1));
+
   const visible = applyFilter(doneSessions, filter);
 
   function pillStyle(active: boolean): React.CSSProperties {
@@ -164,21 +171,26 @@ export function HistoryPage() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 32px' }}>
         <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
           {FILTER_OPTIONS.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setFilter(key)}
-              style={pillStyle(filter === key)}
-            >
+            <button key={key} onClick={() => setFilter(key)} style={pillStyle(filter === key)}>
               {label}
             </button>
           ))}
         </div>
 
-        {visible.length === 0 ? (
+        {loading ? (
+          <div style={{ textAlign: 'center', paddingTop: 60, color: 'var(--text-muted)', fontSize: 14 }}>
+            {LABEL_CARREGANDO}
+          </div>
+        ) : error != null ? (
           <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', paddingTop: 80, gap: 12,
+            padding: '12px 14px', borderRadius: 10,
+            background: 'rgba(239,68,68,.10)', border: '1px solid rgba(239,68,68,.20)',
+            color: '#f87171', fontSize: 13,
           }}>
+            {error}
+          </div>
+        ) : visible.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 80, gap: 12 }}>
             <ScrollText size={32} color="var(--text-muted)" />
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'center' }}>
               {EMPTY_TITLE}
@@ -188,7 +200,7 @@ export function HistoryPage() {
             </div>
           </div>
         ) : (
-          visible.map((session) => (
+          visible.map(session => (
             <SessionHistoryCard
               key={session.id}
               session={session}
