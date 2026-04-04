@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Activity,
   CalendarDays,
@@ -5,13 +6,9 @@ import {
   Zap,
 } from 'lucide-react';
 import { SessionType } from '@paceplan/types';
+import type { TrainingSession } from '@paceplan/types';
 import { useMacrocycle } from '../hooks/useMacrocycle';
-import {
-  CURRENT_WEEK_SESSIONS,
-  LONG_RUN_HISTORY,
-  STREAK_DAYS_14,
-  WEEKLY_VOLUME_HISTORY,
-} from '../mocks/sessionsMock';
+import { useSessions } from '../hooks/useSessions';
 import { isRunningSession, isStrengthSession } from '../services/sessionUtils';
 
 const LABEL_PHASE_TAG = 'FASE';
@@ -23,8 +20,8 @@ const LABEL_META_KM = 'meta';
 const LABEL_ULTIMO_LONGAO = 'Último longão';
 const LABEL_META_ERA = 'meta era';
 const LABEL_STREAK = 'dias seguidos';
-const LABEL_STREAK_RECORDE = 'recorde: 14 dias';
-const LABEL_TREINOS = 'esta semana';
+const LABEL_TREINOS_FEITOS = 'treinos feitos';
+const LABEL_ESTA_SEMANA = 'esta semana';
 const LABEL_PROGR_LONGAO = 'Progressão do longão';
 const LABEL_META_FASE = 'meta fase:';
 const LABEL_REALIZADO = 'realizado';
@@ -36,6 +33,8 @@ const LABEL_MOBILIDADE = 'Mobilidade';
 const LABEL_VOLUME_SEMANA = 'Volume — semana atual';
 const LABEL_VOLUME_CHART = 'Volume de corrida — 8 semanas';
 const LABEL_META_SEMANAL = 'meta semanal';
+const LABEL_CARREGANDO = 'Carregando...';
+const LABEL_SEM_DADOS = 'Sem dados de longão ainda';
 
 const GLASS: React.CSSProperties = {
   background: 'rgba(255,255,255,0.065)',
@@ -45,66 +44,122 @@ const GLASS: React.CSSProperties = {
   borderRadius: 14,
 };
 
-function phaseName(name: string, order: number): string {
-  return `${order} — ${name}`;
+function getWeekMondayStr(date: Date): string {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().slice(0, 10);
 }
 
-function calcWeeklyRunKm(): number {
-  return CURRENT_WEEK_SESSIONS.filter(
-    (s) => s.status === 'done' && isRunningSession(s.type) && s.log?.actualDistance != null
-  ).reduce((sum, s) => sum + (s.log?.actualDistance ?? 0), 0);
+function addDays(dateStr: string, n: number): string {
+  const d = new Date(`${dateStr}T00:00:00`);
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
 }
 
-function calcLastLongRun(): number {
-  const longRuns = CURRENT_WEEK_SESSIONS.filter(
-    (s) => s.type === SessionType.LONG_RUN && s.status === 'done' && s.log?.actualDistance != null
-  );
-  if (longRuns.length === 0) return 0;
-  return longRuns[longRuns.length - 1]?.log?.actualDistance ?? 0;
+function computeWeeklyRunKm(sessions: TrainingSession[], weekStart: string, weekEnd: string): number {
+  return sessions
+    .filter(s => s.date >= weekStart && s.date <= weekEnd && s.status === 'done' && isRunningSession(s.type))
+    .reduce((sum, s) => sum + (s.log?.actualDistance ?? 0), 0);
 }
 
-function calcStreak(): number {
+function computeLastLongRunKm(sessions: TrainingSession[]): number {
+  const runs = sessions
+    .filter(s => s.type === SessionType.LONG_RUN && s.status === 'done' && s.log?.actualDistance != null)
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+  return runs[runs.length - 1]?.log?.actualDistance ?? 0;
+}
+
+function computeStreak(sessions: TrainingSession[], today: string): number {
   let streak = 0;
-  for (let i = STREAK_DAYS_14.length - 1; i >= 0; i--) {
-    const day = STREAK_DAYS_14[i];
-    if (day && day.type !== 'empty') {
-      streak++;
-    } else {
-      break;
-    }
+  const base = new Date(`${today}T00:00:00`);
+  for (let i = 0; i < 60; i++) {
+    const d = new Date(base);
+    d.setDate(base.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const daySessions = sessions.filter(s => s.date === dateStr);
+    if (daySessions.length === 0) break;
+    const counts = daySessions.some(s =>
+      s.status === 'done' || (s.type === SessionType.REST && s.status !== 'skipped')
+    );
+    if (!counts) break;
+    streak++;
   }
   return streak;
 }
 
-function calcSessionCount(): { done: number; total: number } {
-  const done = CURRENT_WEEK_SESSIONS.filter((s) => s.status === 'done').length;
-  return { done, total: CURRENT_WEEK_SESSIONS.length };
+function computeSessionCount(sessions: TrainingSession[], weekStart: string, weekEnd: string): { done: number; total: number } {
+  const week = sessions.filter(s => s.date >= weekStart && s.date <= weekEnd);
+  return { done: week.filter(s => s.status === 'done').length, total: week.length };
 }
 
-function calcVolumeByType(): { run: number; strength: number; mobility: number } {
-  let run = 0;
-  let strength = 0;
-  let mobility = 0;
-  for (const s of CURRENT_WEEK_SESSIONS) {
-    if (s.status !== 'done') continue;
-    if (isRunningSession(s.type)) run++;
-    else if (isStrengthSession(s.type)) strength++;
-    else if (s.type === SessionType.MOBILITY) mobility++;
+function computeVolumeByType(sessions: TrainingSession[], weekStart: string, weekEnd: string): { run: number; strength: number; mobility: number } {
+  const done = sessions.filter(s => s.date >= weekStart && s.date <= weekEnd && s.status === 'done');
+  return {
+    run:      done.filter(s => isRunningSession(s.type)).length,
+    strength: done.filter(s => isStrengthSession(s.type)).length,
+    mobility: done.filter(s => s.type === SessionType.MOBILITY).length,
+  };
+}
+
+function buildVolumeChartData(sessions: TrainingSession[], currentWeekStart: string): { week: string; km: number; isCurrent: boolean }[] {
+  return Array.from({ length: 8 }, (_, i) => {
+    const offset = (7 - i) * 7;
+    const wStart = addDays(currentWeekStart, -offset);
+    const wEnd   = addDays(wStart, 6);
+    const km = sessions
+      .filter(s => s.date >= wStart && s.date <= wEnd && s.status === 'done' && isRunningSession(s.type))
+      .reduce((sum, s) => sum + (s.log?.actualDistance ?? 0), 0);
+    return { week: `S${i + 1}`, km, isCurrent: i === 7 };
+  });
+}
+
+function buildLongRunChartData(sessions: TrainingSession[], currentWeekStart: string): { week: string; km: number }[] {
+  const data: { week: string; km: number }[] = [];
+  for (let i = 0; i < 8; i++) {
+    const offset = (7 - i) * 7;
+    const wStart = addDays(currentWeekStart, -offset);
+    const wEnd   = addDays(wStart, 6);
+    const longRuns = sessions.filter(s =>
+      s.date >= wStart && s.date <= wEnd &&
+      s.type === SessionType.LONG_RUN && s.status === 'done' && s.log?.actualDistance != null
+    );
+    const km = longRuns.reduce((max, s) => Math.max(max, s.log?.actualDistance ?? 0), 0);
+    if (km > 0) data.push({ week: `S${i + 1}`, km });
   }
-  return { run, strength, mobility };
+  return data;
 }
 
-function LongRunChart({ data, phaseTarget }: {
-  data: { week: string; km: number }[];
-  phaseTarget: number;
-}) {
+type StreakDayType = 'run' | 'strength' | 'rest' | 'empty';
+
+function buildStreakDots(sessions: TrainingSession[], today: string): { date: string; type: StreakDayType }[] {
+  return Array.from({ length: 14 }, (_, i) => {
+    const dateStr = addDays(today, -(13 - i));
+    const day = sessions.filter(s => s.date === dateStr && s.status !== 'skipped');
+    if (day.length === 0) return { date: dateStr, type: 'empty' as const };
+    if (day.some(s => isRunningSession(s.type) && s.status === 'done')) return { date: dateStr, type: 'run' as const };
+    if (day.some(s => isStrengthSession(s.type) && s.status === 'done')) return { date: dateStr, type: 'strength' as const };
+    return { date: dateStr, type: 'rest' as const };
+  });
+}
+
+function LongRunChart({ data, phaseTarget }: { data: { week: string; km: number }[]; phaseTarget: number }) {
+  if (data.length === 0) {
+    return (
+      <div style={{ height: 90, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{LABEL_SEM_DADOS}</span>
+      </div>
+    );
+  }
+
   const W = 240;
   const H = 90;
-  const maxKm = Math.max(...data.map((d) => d.km), phaseTarget, 1);
-  const xStep = W / (data.length - 1);
+  const maxKm = Math.max(...data.map(d => d.km), phaseTarget, 1);
+  const xStep = data.length > 1 ? W / (data.length - 1) : W;
 
   const toX = (i: number) => i * xStep;
-  const toY = (km: number) => H - (km / maxKm) * H;
+  const toY  = (km: number) => H - (km / maxKm) * H;
 
   const linePath = data
     .map((d, i) => `${i === 0 ? 'M' : 'L'} ${toX(i).toFixed(1)},${toY(d.km).toFixed(1)}`)
@@ -128,34 +183,21 @@ function LongRunChart({ data, phaseTarget }: {
           <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
         </linearGradient>
       </defs>
-
       <path d={areaPath} fill="url(#longRunArea)" />
       <path d={linePath} fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-
-      <line
-        x1={0} y1={targetY} x2={W} y2={targetY}
-        stroke="#6366f1" strokeWidth="1.5" strokeDasharray="4,3" opacity="0.7"
-      />
-
+      {phaseTarget > 0 && (
+        <line x1={0} y1={targetY} x2={W} y2={targetY}
+          stroke="#6366f1" strokeWidth="1.5" strokeDasharray="4,3" opacity="0.7" />
+      )}
       <circle cx={lastX} cy={lastY} r={4} fill="#8b5cf6" />
       <circle cx={lastX} cy={lastY} r={7} fill="#8b5cf6" fillOpacity="0.2" />
-
-      <text
-        x={lastX} y={lastY - 10}
-        textAnchor="middle" fontSize={9} fill="#c4b5fd"
-        fontFamily="Inter,sans-serif" fontWeight="600"
-      >
+      <text x={lastX} y={lastY - 10} textAnchor="middle" fontSize={9} fill="#c4b5fd" fontFamily="Inter,sans-serif" fontWeight="600">
         {lastKm.toFixed(1)} km
       </text>
-
       {data.map((d, i) => (
-        <text
-          key={d.week}
-          x={toX(i)} y={H + 14}
-          textAnchor="middle" fontSize={9}
+        <text key={d.week} x={toX(i)} y={H + 14} textAnchor="middle" fontSize={9}
           fill={i === data.length - 1 ? '#c4b5fd' : 'rgba(255,255,255,0.3)'}
-          fontFamily="Inter,sans-serif"
-        >
+          fontFamily="Inter,sans-serif">
           {d.week}
         </text>
       ))}
@@ -163,15 +205,11 @@ function LongRunChart({ data, phaseTarget }: {
   );
 }
 
-function VolumeBarChart({ data, target }: {
-  data: { week: string; km: number; isCurrent: boolean }[];
-  target: number;
-}) {
+function VolumeBarChart({ data, target }: { data: { week: string; km: number; isCurrent: boolean }[]; target: number }) {
   const W = 560;
   const H = 90;
-  const maxKm = Math.max(...data.map((d) => d.km), target, 1);
-  const barCount = data.length;
-  const slotW = W / barCount;
+  const maxKm = Math.max(...data.map(d => d.km), target, 1);
+  const slotW = W / data.length;
   const barW = slotW - 8;
   const targetY = H - (target / maxKm) * H;
 
@@ -183,82 +221,58 @@ function VolumeBarChart({ data, target }: {
         const y = H - barH;
         return (
           <g key={week.week}>
-            <rect
-              x={x} y={y} width={barW} height={barH} rx={4}
+            <rect x={x} y={y} width={barW} height={barH} rx={4}
               fill={week.isCurrent ? 'rgba(34,197,94,0.3)' : 'rgba(34,197,94,0.12)'}
               stroke={week.isCurrent ? '#22c55e' : 'none'}
               strokeWidth={week.isCurrent ? 1 : 0}
             />
             {week.isCurrent && (
-              <text
-                x={x + barW / 2} y={y - 5}
-                textAnchor="middle" fontSize={9}
-                fill="#4ade80" fontFamily="Inter,sans-serif" fontWeight="700"
-              >
+              <text x={x + barW / 2} y={y - 5} textAnchor="middle" fontSize={9}
+                fill="#4ade80" fontFamily="Inter,sans-serif" fontWeight="700">
                 {week.km.toFixed(1)}
               </text>
             )}
-            <text
-              x={x + barW / 2} y={H + 14}
-              textAnchor="middle" fontSize={9}
+            <text x={x + barW / 2} y={H + 14} textAnchor="middle" fontSize={9}
               fill={week.isCurrent ? '#4ade80' : 'rgba(255,255,255,0.28)'}
-              fontFamily="Inter,sans-serif"
-            >
+              fontFamily="Inter,sans-serif">
               {week.week}
             </text>
           </g>
         );
       })}
-
-      <line
-        x1={0} y1={targetY} x2={W} y2={targetY}
-        stroke="rgba(99,102,241,0.6)" strokeWidth="1.5" strokeDasharray="5,4"
-      />
-      <text
-        x={4} y={targetY - 4}
-        fontSize={8} fill="rgba(165,180,252,0.8)"
-        fontFamily="Inter,sans-serif"
-      >
-        {target} km
-      </text>
+      {target > 0 && (
+        <>
+          <line x1={0} y1={targetY} x2={W} y2={targetY}
+            stroke="rgba(99,102,241,0.6)" strokeWidth="1.5" strokeDasharray="5,4" />
+          <text x={4} y={targetY - 4} fontSize={8} fill="rgba(165,180,252,0.8)" fontFamily="Inter,sans-serif">
+            {target} km
+          </text>
+        </>
+      )}
     </svg>
   );
 }
 
-function StreakDots() {
+function StreakDots({ days }: { days: { date: string; type: StreakDayType }[] }) {
   return (
     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-      {STREAK_DAYS_14.map((day, i) => {
-        const isLast = i === STREAK_DAYS_14.length - 1;
+      {days.map((day, i) => {
+        const isLast = i === days.length - 1;
         let bg = 'rgba(255,255,255,0.06)';
         if (day.type === 'run') bg = 'rgba(34,197,94,0.5)';
         else if (day.type === 'strength') bg = 'rgba(99,102,241,0.5)';
-        else if (day.type === 'rest') bg = 'rgba(255,255,255,0.06)';
-
         return (
-          <div
-            key={day.date}
-            style={{
-              width: 14,
-              height: 14,
-              borderRadius: 3,
-              background: bg,
-              outline: isLast ? '2px solid #6366f1' : 'none',
-              outlineOffset: 1,
-            }}
-          />
+          <div key={day.date} style={{
+            width: 14, height: 14, borderRadius: 3, background: bg,
+            outline: isLast ? '2px solid #6366f1' : 'none', outlineOffset: 1,
+          }} />
         );
       })}
     </div>
   );
 }
 
-function VolumeTypeBar({ label, count, max, color }: {
-  label: string;
-  count: number;
-  max: number;
-  color: string;
-}) {
+function VolumeTypeBar({ label, count, max, color }: { label: string; count: number; max: number; color: string }) {
   const pct = max > 0 ? (count / max) * 100 : 0;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
@@ -275,23 +289,43 @@ function VolumeTypeBar({ label, count, max, color }: {
 }
 
 export function DashboardPage() {
-  const { currentPhase, weekInPhase, totalWeeksInPhase, weeksToRace, phaseProgressPct, macrocycle } = useMacrocycle();
+  const today = new Date().toISOString().slice(0, 10);
 
-  const weeklyRunKm = calcWeeklyRunKm();
-  const lastLongRun = calcLastLongRun();
-  const streak = calcStreak();
-  const { done, total } = calcSessionCount();
-  const volumeByType = calcVolumeByType();
-  const phaseTarget = currentPhase?.weeklyVolumeTarget ?? 0;
-  const longRunTarget = currentPhase?.longRunTarget ?? 0;
-  const longRunDelta = lastLongRun - longRunTarget;
-  const volumeMax = Math.max(volumeByType.run, volumeByType.strength, volumeByType.mobility, 1);
-  const currentWeekVolume = WEEKLY_VOLUME_HISTORY.find((w) => w.isCurrent)?.km ?? 0;
+  const [currentWeekStart] = useState(() => getWeekMondayStr(new Date()));
+  const [currentWeekEnd]   = useState(() => addDays(getWeekMondayStr(new Date()), 6));
+  const [rangeStart]       = useState(() => addDays(getWeekMondayStr(new Date()), -49));
+
+  const { currentPhase, weekInPhase, totalWeeksInPhase, weeksToRace, phaseProgressPct, loading: macroLoading } = useMacrocycle();
+  const { sessions, loading: sessionsLoading } = useSessions(rangeStart, currentWeekEnd);
+
+  const isLoading = macroLoading || sessionsLoading;
+
+  const weeklyRunKm  = computeWeeklyRunKm(sessions, currentWeekStart, currentWeekEnd);
+  const lastLongRun  = computeLastLongRunKm(sessions);
+  const streak       = computeStreak(sessions, today);
+  const { done, total } = computeSessionCount(sessions, currentWeekStart, currentWeekEnd);
+  const volumeByType = computeVolumeByType(sessions, currentWeekStart, currentWeekEnd);
+  const phaseTarget    = currentPhase?.weeklyVolumeTarget ?? 0;
+  const longRunTarget  = currentPhase?.longRunTarget ?? 0;
+  const longRunDelta   = lastLongRun - longRunTarget;
+  const volumeMax      = Math.max(volumeByType.run, volumeByType.strength, volumeByType.mobility, 1);
+  const volumeChartData   = buildVolumeChartData(sessions, currentWeekStart);
+  const longRunChartData  = buildLongRunChartData(sessions, currentWeekStart);
+  const streakDots        = buildStreakDots(sessions, today);
+  const currentWeekVolume = volumeChartData.find(w => w.isCurrent)?.km ?? 0;
+
+  if (isLoading) {
+    return (
+      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>{LABEL_CARREGANDO}</span>
+      </div>
+    );
+  }
 
   return (
     <div style={{ height: '100%', overflowY: 'auto', padding: '16px 16px 32px' }}>
+      <div style={{ position: 'relative', minHeight: '100%' }}>
 
-      <div style={{ position: 'relative', overflow: 'hidden', minHeight: '100%' }}>
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 0 }}>
           <div style={{ position: 'absolute', width: 300, height: 300, borderRadius: '50%', background: '#6366f1', filter: 'blur(90px)', opacity: 0.14, top: -80, left: -60 }} />
           <div style={{ position: 'absolute', width: 250, height: 250, borderRadius: '50%', background: '#8b5cf6', filter: 'blur(90px)', opacity: 0.12, bottom: 100, right: -50 }} />
@@ -303,14 +337,11 @@ export function DashboardPage() {
           {currentPhase && (
             <div style={{ ...GLASS, padding: '16px 18px', marginBottom: 12, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{
-                  fontSize: 10, fontWeight: 700, letterSpacing: '.10em',
-                  textTransform: 'uppercase', color: '#818cf8', marginBottom: 6,
-                }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.10em', textTransform: 'uppercase', color: '#818cf8', marginBottom: 6 }}>
                   {LABEL_PHASE_TAG} {currentPhase.order} · {LABEL_SEMANA} {weekInPhase} {LABEL_DE} {totalWeeksInPhase}
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>
-                  {phaseName(currentPhase.name, currentPhase.order)}
+                  {currentPhase.order} — {currentPhase.name}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
                   {currentPhase.objective}
@@ -339,9 +370,11 @@ export function DashboardPage() {
               <div style={{ fontSize: 9, color: 'var(--text-hint)', fontWeight: 500, letterSpacing: '.02em', marginBottom: 2 }}>
                 {LABEL_KM_SEMANA}
               </div>
-              <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>
-                {LABEL_META_KM} {phaseTarget} km
-              </div>
+              {phaseTarget > 0 && (
+                <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>
+                  {LABEL_META_KM} {phaseTarget} km
+                </div>
+              )}
             </div>
 
             <div style={{ ...GLASS, padding: '14px 12px' }}>
@@ -352,9 +385,11 @@ export function DashboardPage() {
               <div style={{ fontSize: 9, color: 'var(--text-hint)', fontWeight: 500, letterSpacing: '.02em', marginBottom: 2 }}>
                 {LABEL_ULTIMO_LONGAO}
               </div>
-              <div style={{ fontSize: 9, color: longRunDelta >= 0 ? '#4ade80' : '#f87171' }}>
-                {LABEL_META_ERA} {longRunTarget} km {longRunDelta >= 0 ? '✓' : '↓'}
-              </div>
+              {longRunTarget > 0 && (
+                <div style={{ fontSize: 9, color: longRunDelta >= 0 ? '#4ade80' : '#f87171' }}>
+                  {LABEL_META_ERA} {longRunTarget} km {longRunDelta >= 0 ? '✓' : '↓'}
+                </div>
+              )}
             </div>
 
             <div style={{ ...GLASS, padding: '14px 12px' }}>
@@ -362,11 +397,8 @@ export function DashboardPage() {
               <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.02em', color: '#eab308', marginBottom: 2 }}>
                 {streak}
               </div>
-              <div style={{ fontSize: 9, color: 'var(--text-hint)', fontWeight: 500, letterSpacing: '.02em', marginBottom: 2 }}>
+              <div style={{ fontSize: 9, color: 'var(--text-hint)', fontWeight: 500, letterSpacing: '.02em' }}>
                 {LABEL_STREAK}
-              </div>
-              <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>
-                {LABEL_STREAK_RECORDE}
               </div>
             </div>
 
@@ -376,56 +408,52 @@ export function DashboardPage() {
                 {done}/{total}
               </div>
               <div style={{ fontSize: 9, color: 'var(--text-hint)', fontWeight: 500, letterSpacing: '.02em', marginBottom: 2 }}>
-                treinos feitos
+                {LABEL_TREINOS_FEITOS}
               </div>
               <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>
-                {LABEL_TREINOS}
+                {LABEL_ESTA_SEMANA}
               </div>
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
             <div style={{ ...GLASS, padding: '16px' }}>
-              <div style={{
-                fontSize: 10, fontWeight: 600, letterSpacing: '.08em',
-                textTransform: 'uppercase', color: 'var(--text-hint)', marginBottom: 12,
-              }}>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text-hint)', marginBottom: 12 }}>
                 {LABEL_PROGR_LONGAO}
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div>
-                  <span style={{ fontSize: 22, fontWeight: 700, color: '#8b5cf6', letterSpacing: '-.02em' }}>
-                    {lastLongRun.toFixed(1)} km
-                  </span>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                    {LABEL_META_FASE} {longRunTarget} km
+                <span style={{ fontSize: 22, fontWeight: 700, color: '#8b5cf6', letterSpacing: '-.02em' }}>
+                  {lastLongRun.toFixed(1)} km
+                </span>
+                {longRunTarget > 0 && (
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                      {LABEL_META_FASE} {longRunTarget} km
+                    </div>
+                    <div style={{ fontSize: 10, color: longRunDelta >= 0 ? '#4ade80' : '#f87171', fontWeight: 600 }}>
+                      {longRunDelta >= 0 ? '+' : ''}{longRunDelta.toFixed(1)} km
+                    </div>
                   </div>
-                  <div style={{ fontSize: 10, color: longRunDelta >= 0 ? '#4ade80' : '#f87171', fontWeight: 600 }}>
-                    {longRunDelta >= 0 ? '+' : ''}{longRunDelta.toFixed(1)} km
-                  </div>
-                </div>
+                )}
               </div>
-              <LongRunChart data={LONG_RUN_HISTORY} phaseTarget={longRunTarget} />
+              <LongRunChart data={longRunChartData} phaseTarget={longRunTarget} />
               <div style={{ display: 'flex', gap: 14, marginTop: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <div style={{ width: 16, height: 2, borderRadius: 1, background: '#8b5cf6' }} />
                   <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{LABEL_REALIZADO}</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <div style={{ width: 16, height: 0, borderTop: '2px dashed #6366f1', opacity: 0.7 }} />
-                  <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{LABEL_META}</span>
-                </div>
+                {longRunTarget > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <div style={{ width: 16, height: 0, borderTop: '2px dashed #6366f1', opacity: 0.7 }} />
+                    <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{LABEL_META}</span>
+                  </div>
+                )}
               </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ ...GLASS, padding: '14px 16px' }}>
-                <div style={{
-                  fontSize: 10, fontWeight: 600, letterSpacing: '.08em',
-                  textTransform: 'uppercase', color: 'var(--text-hint)', marginBottom: 10,
-                }}>
+                <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text-hint)', marginBottom: 10 }}>
                   {LABEL_STREAK_CONSIST}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 12 }}>
@@ -434,7 +462,7 @@ export function DashboardPage() {
                   </span>
                   <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{LABEL_STREAK}</span>
                 </div>
-                <StreakDots />
+                <StreakDots days={streakDots} />
                 <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <div style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(34,197,94,0.5)' }} />
@@ -452,35 +480,31 @@ export function DashboardPage() {
               </div>
 
               <div style={{ ...GLASS, padding: '14px 16px', flex: 1 }}>
-                <div style={{
-                  fontSize: 10, fontWeight: 600, letterSpacing: '.08em',
-                  textTransform: 'uppercase', color: 'var(--text-hint)', marginBottom: 12,
-                }}>
+                <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text-hint)', marginBottom: 12 }}>
                   {LABEL_VOLUME_SEMANA}
                 </div>
-                <VolumeTypeBar label={LABEL_CORRIDA} count={volumeByType.run} max={volumeMax} color="#22c55e" />
-                <VolumeTypeBar label={LABEL_FORCA} count={volumeByType.strength} max={volumeMax} color="#6366f1" />
+                <VolumeTypeBar label={LABEL_CORRIDA}    count={volumeByType.run}      max={volumeMax} color="#22c55e" />
+                <VolumeTypeBar label={LABEL_FORCA}      count={volumeByType.strength} max={volumeMax} color="#6366f1" />
                 <VolumeTypeBar label={LABEL_MOBILIDADE} count={volumeByType.mobility} max={volumeMax} color="#64748b" />
               </div>
             </div>
           </div>
 
           <div style={{ ...GLASS, padding: '16px' }}>
-            <div style={{
-              fontSize: 10, fontWeight: 600, letterSpacing: '.08em',
-              textTransform: 'uppercase', color: 'var(--text-hint)', marginBottom: 10,
-            }}>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text-hint)', marginBottom: 10 }}>
               {LABEL_VOLUME_CHART}
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 20, fontWeight: 700, color: '#4ade80', letterSpacing: '-.02em' }}>
                 {currentWeekVolume.toFixed(1)} km
               </span>
-              <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                {LABEL_META_SEMANAL} {macrocycle.name.split('—')[0]?.trim() ?? ''}: {phaseTarget} km
-              </span>
+              {phaseTarget > 0 && (
+                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                  {LABEL_META_SEMANAL}: {phaseTarget} km
+                </span>
+              )}
             </div>
-            <VolumeBarChart data={WEEKLY_VOLUME_HISTORY} target={phaseTarget} />
+            <VolumeBarChart data={volumeChartData} target={phaseTarget} />
           </div>
 
         </div>
