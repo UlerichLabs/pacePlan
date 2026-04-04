@@ -1,0 +1,10 @@
+{
+  "name": "@paceplan/config",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    "./tsconfig/base": "./tsconfig.base.json",
+    "./tsconfig/web": "./tsconfig.web.json",
+    "./tsconfig/node": "./tsconfig.node.json"
+  }
+}
