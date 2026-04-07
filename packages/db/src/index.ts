@@ -16,8 +16,11 @@ export {
   findActiveMacrocycle,
   findMacrocycleById,
   createMacrocycle,
+  archiveActiveMacrocycle,
   findPhasesByMacrocycle,
   createPhase,
 } from "./queries/macrocycles.js";
 
-export type { CreateMacrocyclePayload, CreatePhasePayload } from "./queries/macrocycles.js";
+export type { CreateMacrocyclePayload } from "./queries/macrocycles.js";
+
+export { insertPhase, checkPhaseOverlap } from "./queries/phaseQueries.js";

@@ -1,7 +1,7 @@
 import { type CSSProperties, type FormEvent, useState } from 'react';
 import { ChevronLeft, Target, AlertCircle, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { macrocycleService, MacrocycleApiError } from '../services/macrocycleService';
+import { macrocycleService } from '../services/macrocycleService';
 
 const TITLE = 'Novo Projeto de Treino';
 const LABEL_NOME = 'Nome do projeto';
@@ -75,14 +75,11 @@ export function NewMacrocyclePage() {
       await macrocycleService.create({ name: name.trim(), goalDistance: goal, startDate, raceDate });
       navigate('/week', { replace: true });
     } catch (err) {
-      if (err instanceof MacrocycleApiError) {
-        if (err.statusCode === 409) {
-          setConflictError(err.message);
-        } else {
-          setFieldError(err.message);
-        }
+      const message = err instanceof Error ? err.message : 'Erro inesperado. Tente novamente.';
+      if (err instanceof Error && err.message.includes('ativo')) {
+        setConflictError(message);
       } else {
-        setFieldError('Erro inesperado. Tente novamente.');
+        setFieldError(message);
       }
     } finally {
       setSubmitting(false);
