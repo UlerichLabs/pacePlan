@@ -1,17 +1,11 @@
 import { type CSSProperties, type FormEvent, useState } from 'react';
-import { ChevronLeft, Plus, Target } from 'lucide-react';
+import { ChevronLeft, Plus, Target, Archive, FolderOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMacrocycle } from '../hooks/useMacrocycle';
 import { macrocycleService } from '../services/macrocycleService';
-import type { CreateMacrocyclePayload, CreatePhasePayload } from '../services/macrocycleService';
+import type { CreatePhasePayload } from '../services/macrocycleService';
 
 const PAGE_TITLE = 'Macrociclo';
-const LABEL_NOME = 'Nome do macrociclo';
-const LABEL_DISTANCIA = 'Distância objetivo (km)';
-const LABEL_DATA_PROVA = 'Data da prova';
-const LABEL_DATA_INICIO = 'Data de início';
-const LABEL_CRIAR_MACRO = 'Criar macrociclo';
-const LABEL_CRIANDO = 'Criando...';
 const LABEL_FASES = 'FASES';
 const LABEL_ADD_FASE = 'Adicionar fase';
 const LABEL_NOME_FASE = 'Nome da fase';
@@ -27,7 +21,12 @@ const LABEL_CARREGANDO = 'Carregando...';
 const LABEL_SEMANAS = 'semanas';
 const LABEL_LONGAO_META = 'longão meta';
 const LABEL_VOLUME_META = 'volume meta/sem';
-const PLACEHOLDER_NOME = 'Meia Maratona — Novembro 2026';
+const LABEL_ARQUIVAR = 'Arquivar plano';
+const LABEL_ARQUIVANDO = 'Arquivando...';
+const LABEL_EMPTY_TITLE = 'Nenhum projeto de treino ativo';
+const LABEL_EMPTY_DESC = 'Crie um projeto para organizar suas semanas de treino até a sua próxima prova.';
+const LABEL_EMPTY_CTA = 'Criar projeto de treino';
+const CONFIRM_ARCHIVE = 'Tem certeza que deseja arquivar este projeto? Você poderá criar um novo em seguida.';
 const PLACEHOLDER_OBJETIVO = 'Consolidar 10 km de forma confortável...';
 
 const inputStyle: CSSProperties = {
@@ -38,6 +37,7 @@ const inputStyle: CSSProperties = {
   backdropFilter: 'blur(12px)',
   WebkitBackdropFilter: 'blur(12px)',
   transition: 'border-color .15s',
+  boxSizing: 'border-box',
 };
 
 const sectionLabel: CSSProperties = {
@@ -57,15 +57,6 @@ export function MacrocyclePage() {
   const navigate = useNavigate();
   const { macrocycle, phases, loading, error, refetch } = useMacrocycle();
 
-  const today = new Date().toISOString().slice(0, 10);
-
-  const [macroName, setMacroName] = useState('');
-  const [macroGoalDistance, setMacroGoalDistance] = useState('');
-  const [macroRaceDate, setMacroRaceDate] = useState('');
-  const [macroStartDate, setMacroStartDate] = useState(today);
-  const [macroSubmitting, setMacroSubmitting] = useState(false);
-  const [macroError, setMacroError] = useState<string | null>(null);
-
   const [showPhaseForm, setShowPhaseForm] = useState(false);
   const [phaseName, setPhaseName] = useState('');
   const [phaseObjective, setPhaseObjective] = useState('');
@@ -75,28 +66,18 @@ export function MacrocyclePage() {
   const [phaseVolume, setPhaseVolume] = useState('');
   const [phaseSubmitting, setPhaseSubmitting] = useState(false);
   const [phaseError, setPhaseError] = useState<string | null>(null);
+  const [archiving, setArchiving] = useState(false);
 
-  async function handleCreateMacrocycle(e: FormEvent) {
-    e.preventDefault();
-    const goal = Number(macroGoalDistance);
-    if (!macroName.trim() || isNaN(goal) || goal <= 0 || !macroRaceDate || !macroStartDate) return;
-
-    const payload: CreateMacrocyclePayload = {
-      name: macroName.trim(),
-      goalDistance: goal,
-      raceDate: macroRaceDate,
-      startDate: macroStartDate,
-    };
-
-    setMacroSubmitting(true);
-    setMacroError(null);
+  async function handleArchive() {
+    if (!window.confirm(CONFIRM_ARCHIVE)) return;
+    setArchiving(true);
     try {
-      await macrocycleService.create(payload);
+      await macrocycleService.archiveActive();
       await refetch();
-    } catch (err) {
-      setMacroError(err instanceof Error ? err.message : 'Erro ao criar macrociclo');
+    } catch {
+      // noop — refetch will still update state
     } finally {
-      setMacroSubmitting(false);
+      setArchiving(false);
     }
   }
 
@@ -144,13 +125,29 @@ export function MacrocyclePage() {
         WebkitBackdropFilter: 'blur(24px)',
         flexShrink: 0,
       }}>
-        <button onClick={() => navigate(-1)} style={{ color: 'var(--text-muted)', display: 'flex', padding: 4 }}>
+        <button onClick={() => navigate(-1)} style={{ color: 'var(--text-muted)', display: 'flex', padding: 4, background: 'none', border: 'none', cursor: 'pointer' }}>
           <ChevronLeft size={22} />
         </button>
         <Target size={17} color="#a5b4fc" />
-        <h1 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-primary)' }}>
+        <h1 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-primary)', margin: 0, flex: 1 }}>
           {PAGE_TITLE}
         </h1>
+        {macrocycle != null && (
+          <button
+            onClick={handleArchive}
+            disabled={archiving}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              fontSize: 12, fontWeight: 600,
+              color: archiving ? 'var(--text-hint)' : 'var(--text-muted)',
+              background: 'none', border: 'none', cursor: archiving ? 'not-allowed' : 'pointer',
+              padding: '6px 4px',
+            }}
+          >
+            <Archive size={15} />
+            {archiving ? LABEL_ARQUIVANDO : LABEL_ARQUIVAR}
+          </button>
+        )}
       </header>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 32px' }}>
@@ -167,63 +164,42 @@ export function MacrocyclePage() {
             {error}
           </div>
         ) : macrocycle === null ? (
-          <form onSubmit={handleCreateMacrocycle} style={{ display: 'flex', flexDirection: 'column' }}>
-            {macroError != null && (
-              <div style={{
-                marginBottom: 16, padding: '12px 14px', borderRadius: 10,
-                background: 'rgba(239,68,68,.10)', border: '1px solid rgba(239,68,68,.20)',
-                color: '#f87171', fontSize: 13,
-              }}>
-                {macroError}
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'center', textAlign: 'center',
+            padding: '60px 24px',
+            gap: 16,
+          }}>
+            <div style={{
+              width: 64, height: 64, borderRadius: 20,
+              background: 'rgba(99,102,241,.12)',
+              border: '1px solid rgba(99,102,241,.20)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <FolderOpen size={28} color="#a5b4fc" />
+            </div>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
+                {LABEL_EMPTY_TITLE}
               </div>
-            )}
-
-            <span style={sectionLabel}>{LABEL_NOME}</span>
-            <input
-              type="text" value={macroName} onChange={e => setMacroName(e.target.value)}
-              placeholder={PLACEHOLDER_NOME} required style={inputStyle}
-            />
-
-            <span style={sectionLabel}>{LABEL_DISTANCIA}</span>
-            <input
-              type="number" value={macroGoalDistance} onChange={e => setMacroGoalDistance(e.target.value)}
-              min="1" step="0.5" placeholder="21" required style={inputStyle}
-            />
-
-            <span style={sectionLabel}>{LABEL_DATA_PROVA}</span>
-            <input
-              type="date" value={macroRaceDate} onChange={e => setMacroRaceDate(e.target.value)}
-              required style={{ ...inputStyle, colorScheme: 'dark' }}
-            />
-
-            <span style={sectionLabel}>{LABEL_DATA_INICIO}</span>
-            <input
-              type="date" value={macroStartDate} onChange={e => setMacroStartDate(e.target.value)}
-              required style={{ ...inputStyle, colorScheme: 'dark' }}
-            />
-
-            {macroStartDate && macroRaceDate && macroStartDate < macroRaceDate && (
-              <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 10, background: 'rgba(99,102,241,.10)', border: '1px solid rgba(99,102,241,.18)' }}>
-                <span style={{ fontSize: 12, color: '#a5b4fc' }}>
-                  Duração total: {countWeeks(macroStartDate, macroRaceDate)} {LABEL_SEMANAS}
-                </span>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 260 }}>
+                {LABEL_EMPTY_DESC}
               </div>
-            )}
-
+            </div>
             <button
-              type="submit" disabled={macroSubmitting}
+              onClick={() => navigate('/macrocycle/new')}
               style={{
-                marginTop: 28, width: '100%', padding: '13px', borderRadius: 12,
+                marginTop: 8,
+                padding: '13px 28px', borderRadius: 12,
                 background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                 color: '#fff', fontSize: 15, fontWeight: 600,
-                border: 'none', cursor: macroSubmitting ? 'not-allowed' : 'pointer',
+                border: 'none', cursor: 'pointer',
                 boxShadow: '0 4px 20px rgba(99,102,241,.35)',
-                opacity: macroSubmitting ? .6 : 1, transition: 'opacity .15s',
               }}
             >
-              {macroSubmitting ? LABEL_CRIANDO : LABEL_CRIAR_MACRO}
+              {LABEL_EMPTY_CTA}
             </button>
-          </form>
+          </div>
         ) : (
           <>
             <div style={{
