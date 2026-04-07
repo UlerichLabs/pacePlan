@@ -39,13 +39,14 @@ export const phaseService = {
 
     const body = await res.json().catch(() => ({})) as Partial<CreatePhaseResponse> & {
       error?: string;
+      message?: string;
       code?: string;
       statusCode?: number;
     };
 
     if (!res.ok) {
       throw new PhaseApiError(
-        body.error ?? `HTTP ${res.status}`,
+        body.message ?? body.error ?? `HTTP ${res.status}`,
         body.statusCode ?? res.status,
         body.code ?? '',
       );
