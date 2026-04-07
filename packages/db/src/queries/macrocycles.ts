@@ -66,31 +66,20 @@ export async function createMacrocycle(
   sql: Sql,
   payload: CreateMacrocyclePayload
 ): Promise<Macrocycle> {
-  const conn = await sql.reserve();
-  try {
-    await conn`BEGIN`;
-    await conn`UPDATE macrocycles SET is_active = FALSE WHERE is_active = TRUE`;
-    const rows = await conn`
-      INSERT INTO macrocycles (name, goal_distance, race_date, start_date, is_active)
-      VALUES (
-        ${payload.name},
-        ${payload.goalDistance},
-        ${payload.raceDate}::date,
-        ${payload.startDate}::date,
-        TRUE
-      )
-      RETURNING *
-    `;
-    const row = rows[0];
-    if (!row) throw new Error("Failed to create macrocycle");
-    await conn`COMMIT`;
-    return rowToMacrocycle(row as Record<string, unknown>);
-  } catch (err) {
-    await conn`ROLLBACK`.catch(() => undefined);
-    throw err;
-  } finally {
-    conn.release();
-  }
+  const rows = await sql`
+    INSERT INTO macrocycles (name, goal_distance, race_date, start_date, is_active)
+    VALUES (
+      ${payload.name},
+      ${payload.goalDistance},
+      ${payload.raceDate}::date,
+      ${payload.startDate}::date,
+      TRUE
+    )
+    RETURNING *
+  `;
+  const row = rows[0];
+  if (!row) throw new Error("Failed to create macrocycle");
+  return rowToMacrocycle(row as Record<string, unknown>);
 }
 
 // ─── Phase queries ────────────────────────────────────────────────────────────

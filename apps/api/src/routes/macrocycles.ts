@@ -4,17 +4,27 @@ import { sql } from "@paceplan/db";
 import {
   findActiveMacrocycle,
   findMacrocycleById,
-  createMacrocycle,
   findPhasesByMacrocycle,
   createPhase,
 } from "@paceplan/db";
 import { DATE_REGEX } from "../utils/validation.js";
+import { macrocycleService } from "../services/macrocycleService.js";
+import { ERROR_CODES, ERROR_MESSAGES, DomainError } from "../utils/errorCodes.js";
 
 const createMacrocycleSchema = z.object({
-  name: z.string().min(1, "Nome é obrigatório"),
-  goalDistance: z.number().positive("Distância deve ser positiva"),
+  name: z.string().superRefine((val, ctx) => {
+    if (val.trim().length === 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: ERROR_MESSAGES.MACROCYCLE.NAME_EMPTY });
+    } else if (val.length < 3 || val.length > 100) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: ERROR_MESSAGES.MACROCYCLE.NAME_LENGTH });
+    }
+  }),
+  goalDistance: z.number().positive(ERROR_MESSAGES.MACROCYCLE.INVALID_DISTANCE),
   raceDate: z.string().regex(DATE_REGEX, "Data deve estar no formato YYYY-MM-DD"),
   startDate: z.string().regex(DATE_REGEX, "Data deve estar no formato YYYY-MM-DD"),
+}).refine(data => data.startDate < data.raceDate, {
+  message: ERROR_MESSAGES.MACROCYCLE.INVALID_DATES,
+  path: ["startDate"]
 });
 
 const createPhaseSchema = z.object({
@@ -40,10 +50,23 @@ export async function macrocyclesRoutes(app: FastifyInstance): Promise<void> {
   app.post("/", async (req, reply) => {
     const result = createMacrocycleSchema.safeParse(req.body);
     if (!result.success) {
-      return reply.badRequest(result.error.errors[0]?.message ?? "Dados inválidos");
+      const message = result.error.errors[0]?.message ?? "Dados inválidos";
+      let code = "400.000";
+      if (message === ERROR_MESSAGES.MACROCYCLE.NAME_EMPTY) code = ERROR_CODES.MACROCYCLE.NAME_EMPTY;
+      if (message === ERROR_MESSAGES.MACROCYCLE.NAME_LENGTH) code = ERROR_CODES.MACROCYCLE.NAME_LENGTH;
+      if (message === ERROR_MESSAGES.MACROCYCLE.INVALID_DATES) code = ERROR_CODES.MACROCYCLE.INVALID_DATES;
+      if (message === ERROR_MESSAGES.MACROCYCLE.INVALID_DISTANCE) code = ERROR_CODES.MACROCYCLE.INVALID_DISTANCE;
+      
+      throw new DomainError(message, code, 400); 
     }
-    const macrocycle = await createMacrocycle(sql, result.data);
-    return reply.code(201).send({ data: macrocycle });
+
+    const macrocycle = await macrocycleService.create(result.data);
+    return reply.code(201).send({
+      status: "SUCCESS",
+      code: ERROR_CODES.MACROCYCLE.CREATED,
+      message: ERROR_MESSAGES.MACROCYCLE.CREATED.replace('{name}', macrocycle.name),
+      macrocycle
+    });
   });
 
   app.get<{ Params: { id: string } }>("/:id/phases", async (req, reply) => {
