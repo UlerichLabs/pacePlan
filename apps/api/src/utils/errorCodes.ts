@@ -5,7 +5,9 @@ export const ERROR_CODES = {
     INVALID_DATES: "400.012",
     INVALID_DISTANCE: "400.013",
     ALREADY_ACTIVE: "409.010",
+    NOT_FOUND: "404.010",
     CREATED: "201.001",
+    ARCHIVED: "200.010",
   },
 } as const;
 
@@ -16,7 +18,9 @@ export const ERROR_MESSAGES = {
     INVALID_DATES: "A data de início deve ser anterior à data da prova",
     INVALID_DISTANCE: "A distância alvo deve ser maior que zero",
     ALREADY_ACTIVE: "Você já possui um macrociclo ativo. Conclua ou arquive o atual antes de iniciar um novo.",
+    NOT_FOUND: "Nenhum macrociclo ativo encontrado",
     CREATED: "Projeto '{name}' criado com sucesso!",
+    ARCHIVED: "Projeto arquivado com sucesso",
   },
 } as const;
 

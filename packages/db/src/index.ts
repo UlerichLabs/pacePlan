@@ -16,6 +16,7 @@ export {
   findActiveMacrocycle,
   findMacrocycleById,
   createMacrocycle,
+  archiveActiveMacrocycle,
   findPhasesByMacrocycle,
   createPhase,
 } from "./queries/macrocycles.js";
