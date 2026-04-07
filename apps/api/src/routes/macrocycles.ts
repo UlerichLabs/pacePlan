@@ -58,6 +58,16 @@ export async function macrocyclesRoutes(app: FastifyInstance): Promise<void> {
     });
   });
 
+  app.patch("/active/archive", async (_req, reply) => {
+    const macrocycle = await macrocycleService.archiveActive();
+    return reply.send({
+      status: "SUCCESS",
+      code: ERROR_CODES.MACROCYCLE.ARCHIVED,
+      message: ERROR_MESSAGES.MACROCYCLE.ARCHIVED,
+      macrocycle,
+    });
+  });
+
   app.get<{ Params: { id: string } }>("/:id/phases", async (req, reply) => {
     const macrocycle = await findMacrocycleById(sql, req.params.id);
     if (!macrocycle) return reply.notFound("Macrociclo não encontrado");

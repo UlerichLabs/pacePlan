@@ -82,6 +82,16 @@ export async function createMacrocycle(
   return rowToMacrocycle(row as Record<string, unknown>);
 }
 
+export async function archiveActiveMacrocycle(sql: Sql): Promise<Macrocycle | null> {
+  const rows = await sql`
+    UPDATE macrocycles SET is_active = FALSE
+    WHERE is_active = TRUE
+    RETURNING *
+  `;
+  const row = rows[0];
+  return row ? rowToMacrocycle(row as Record<string, unknown>) : null;
+}
+
 // ─── Phase queries ────────────────────────────────────────────────────────────
 
 export async function findPhasesByMacrocycle(

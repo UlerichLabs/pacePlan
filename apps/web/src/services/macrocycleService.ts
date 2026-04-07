@@ -39,6 +39,16 @@ export const macrocycleService = {
   create: (payload: CreateMacrocyclePayload) =>
     request<Macrocycle>(BASE, { method: 'POST', body: JSON.stringify(payload) }),
 
+  async archiveActive(): Promise<Macrocycle> {
+    const res = await fetch(`${BASE}/active/archive`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const body = await res.json().catch(() => ({})) as { error?: string; macrocycle?: Macrocycle };
+    if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
+    return body.macrocycle as Macrocycle;
+  },
+
   getPhases: (id: string) =>
     request<Phase[]>(`${BASE}/${id}/phases`),
 
