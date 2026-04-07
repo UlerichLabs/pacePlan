@@ -165,6 +165,15 @@ export interface LogSessionPayload {
   notes?: string | undefined;
 }
 
+export interface CreatePhasePayload {
+  name: string;
+  objective: string;
+  startDate: string;
+  endDate: string;
+  longRunTarget?: number | undefined;
+  weeklyVolumeTarget?: number | undefined;
+}
+
 // ─── API Response Wrappers ────────────────────────────────────────────────────
 
 export interface ApiSuccess<T> {

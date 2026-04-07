@@ -9,6 +9,12 @@ export const ERROR_CODES = {
     CREATED: "201.001",
     ARCHIVED: "200.010",
   },
+  PHASE: {
+    INVALID_NAME_OBJECTIVE: "400.020",
+    OUT_OF_BOUNDS: "400.021",
+    OVERLAP: "409.020",
+    CREATED: "201.002",
+  },
 } as const;
 
 export const ERROR_MESSAGES = {
@@ -21,6 +27,12 @@ export const ERROR_MESSAGES = {
     NOT_FOUND: "Nenhum macrociclo ativo encontrado",
     CREATED: "Projeto '{name}' criado com sucesso!",
     ARCHIVED: "Projeto arquivado com sucesso",
+  },
+  PHASE: {
+    INVALID_NAME_OBJECTIVE: "Defina um nome e um objetivo claro para esta fase",
+    OUT_OF_BOUNDS: "O período da fase deve estar dentro das datas do macrociclo",
+    OVERLAP: "As datas desta fase entram em conflito com uma fase já cadastrada neste macrociclo",
+    CREATED: "Fase '{name}' adicionada ao seu planejamento.",
   },
 } as const;
 
@@ -35,4 +47,3 @@ export class DomainError extends Error {
     this.statusCode = statusCode;
   }
 }
-

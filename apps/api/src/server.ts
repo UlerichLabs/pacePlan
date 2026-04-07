@@ -5,6 +5,7 @@ import sensible from "@fastify/sensible";
 import { healthRoutes } from "./routes/health.js";
 import { sessionsRoutes } from "./routes/sessions.js";
 import { macrocyclesRoutes } from "./routes/macrocycles.js";
+import { phasesRoutes } from "./routes/phases.js";
 
 const PORT = parseInt(process.env["PORT"] ?? "3001", 10);
 const HOST = process.env["HOST"] ?? "0.0.0.0";
@@ -18,6 +19,7 @@ await app.register(sensible);
 await app.register(healthRoutes);
 await app.register(sessionsRoutes, { prefix: "/api/sessions" });
 await app.register(macrocyclesRoutes, { prefix: "/api/macrocycles" });
+await app.register(phasesRoutes, { prefix: "/api/macrocycles" });
 
 app.setErrorHandler((error: FastifyError, _req, reply) => {
   const status = error.statusCode ?? 500;

@@ -5,7 +5,6 @@ import {
   findActiveMacrocycle,
   findMacrocycleById,
   findPhasesByMacrocycle,
-  createPhase,
 } from "@paceplan/db";
 import { DATE_REGEX } from "../utils/validation.js";
 import { macrocycleService } from "../services/macrocycleService.js";
@@ -27,16 +26,6 @@ const createMacrocycleSchema = z.object({
   path: ["startDate"]
 });
 
-const createPhaseSchema = z.object({
-  name: z.string().min(1, "Nome é obrigatório"),
-  objective: z.string().min(1, "Objetivo é obrigatório"),
-  startDate: z.string().regex(DATE_REGEX, "Data deve estar no formato YYYY-MM-DD"),
-  endDate: z.string().regex(DATE_REGEX, "Data deve estar no formato YYYY-MM-DD"),
-  orderIndex: z.number().int().min(1),
-  longRunTarget: z.number().positive().optional(),
-  weeklyVolumeTarget: z.number().positive().optional(),
-});
-
 export async function macrocyclesRoutes(app: FastifyInstance): Promise<void> {
   app.get("/active", async (_req, reply) => {
     const macrocycle = await findActiveMacrocycle(sql);
@@ -56,8 +45,8 @@ export async function macrocyclesRoutes(app: FastifyInstance): Promise<void> {
       if (message === ERROR_MESSAGES.MACROCYCLE.NAME_LENGTH) code = ERROR_CODES.MACROCYCLE.NAME_LENGTH;
       if (message === ERROR_MESSAGES.MACROCYCLE.INVALID_DATES) code = ERROR_CODES.MACROCYCLE.INVALID_DATES;
       if (message === ERROR_MESSAGES.MACROCYCLE.INVALID_DISTANCE) code = ERROR_CODES.MACROCYCLE.INVALID_DISTANCE;
-      
-      throw new DomainError(message, code, 400); 
+
+      throw new DomainError(message, code, 400);
     }
 
     const macrocycle = await macrocycleService.create(result.data);
@@ -65,7 +54,7 @@ export async function macrocyclesRoutes(app: FastifyInstance): Promise<void> {
       status: "SUCCESS",
       code: ERROR_CODES.MACROCYCLE.CREATED,
       message: ERROR_MESSAGES.MACROCYCLE.CREATED.replace('{name}', macrocycle.name),
-      macrocycle
+      macrocycle,
     });
   });
 
@@ -84,14 +73,5 @@ export async function macrocyclesRoutes(app: FastifyInstance): Promise<void> {
     if (!macrocycle) return reply.notFound("Macrociclo não encontrado");
     const phases = await findPhasesByMacrocycle(sql, macrocycle.id);
     return reply.send({ data: phases });
-  });
-
-  app.post<{ Params: { id: string } }>("/:id/phases", async (req, reply) => {
-    const result = createPhaseSchema.safeParse(req.body);
-    if (!result.success) {
-      return reply.badRequest(result.error.errors[0]?.message ?? "Dados inválidos");
-    }
-    const phase = await createPhase(sql, req.params.id, result.data);
-    return reply.code(201).send({ data: phase });
   });
 }
