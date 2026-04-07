@@ -1,27 +1,20 @@
-import { useState } from 'react';
-import {
-  Activity,
-  CalendarDays,
-  TrendingUp,
-  Zap,
-} from 'lucide-react';
+import { type CSSProperties, useState } from 'react';
 import { SessionType } from '@paceplan/types';
 import type { TrainingSession } from '@paceplan/types';
 import { useMacrocycle } from '../hooks/useMacrocycle';
 import { useSessions } from '../hooks/useSessions';
 import { isRunningSession, isStrengthSession } from '../services/sessionUtils';
+import { KPIBanner } from '../components/UI/Dashboard/KPIBanner';
+import { LongRunProgressChart } from '../components/UI/Dashboard/LongRunProgressChart';
+import { WeeklyVolumeChart } from '../components/UI/Dashboard/WeeklyVolumeChart';
+import { StreakDots, type StreakDayType } from '../components/UI/Dashboard/StreakDots';
+import { VolumeTypeBar } from '../components/UI/Dashboard/VolumeTypeBar';
 
 const LABEL_PHASE_TAG = 'FASE';
 const LABEL_SEMANA = 'SEMANA';
 const LABEL_DE = 'DE';
 const LABEL_WEEKS_TO_RACE = 'semanas para a prova';
-const LABEL_KM_SEMANA = 'KMs corrida esta semana';
-const LABEL_META_KM = 'meta';
-const LABEL_ULTIMO_LONGAO = 'Último longão';
-const LABEL_META_ERA = 'meta era';
 const LABEL_STREAK = 'dias seguidos';
-const LABEL_TREINOS_FEITOS = 'treinos feitos';
-const LABEL_ESTA_SEMANA = 'esta semana';
 const LABEL_PROGR_LONGAO = 'Progressão do longão';
 const LABEL_META_FASE = 'meta fase:';
 const LABEL_REALIZADO = 'realizado';
@@ -34,9 +27,8 @@ const LABEL_VOLUME_SEMANA = 'Volume — semana atual';
 const LABEL_VOLUME_CHART = 'Volume de corrida — 8 semanas';
 const LABEL_META_SEMANAL = 'meta semanal';
 const LABEL_CARREGANDO = 'Carregando...';
-const LABEL_SEM_DADOS = 'Sem dados de longão ainda';
 
-const GLASS: React.CSSProperties = {
+const GLASS: CSSProperties = {
   background: 'rgba(255,255,255,0.065)',
   border: '1px solid rgba(255,255,255,0.10)',
   backdropFilter: 'blur(24px)',
@@ -131,7 +123,7 @@ function buildLongRunChartData(sessions: TrainingSession[], currentWeekStart: st
   return data;
 }
 
-type StreakDayType = 'run' | 'strength' | 'rest' | 'empty';
+
 
 function buildStreakDots(sessions: TrainingSession[], today: string): { date: string; type: StreakDayType }[] {
   return Array.from({ length: 14 }, (_, i) => {
@@ -142,150 +134,6 @@ function buildStreakDots(sessions: TrainingSession[], today: string): { date: st
     if (day.some(s => isStrengthSession(s.type) && s.status === 'done')) return { date: dateStr, type: 'strength' as const };
     return { date: dateStr, type: 'rest' as const };
   });
-}
-
-function LongRunChart({ data, phaseTarget }: { data: { week: string; km: number }[]; phaseTarget: number }) {
-  if (data.length === 0) {
-    return (
-      <div style={{ height: 90, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{LABEL_SEM_DADOS}</span>
-      </div>
-    );
-  }
-
-  const W = 240;
-  const H = 90;
-  const maxKm = Math.max(...data.map(d => d.km), phaseTarget, 1);
-  const xStep = data.length > 1 ? W / (data.length - 1) : W;
-
-  const toX = (i: number) => i * xStep;
-  const toY  = (km: number) => H - (km / maxKm) * H;
-
-  const linePath = data
-    .map((d, i) => `${i === 0 ? 'M' : 'L'} ${toX(i).toFixed(1)},${toY(d.km).toFixed(1)}`)
-    .join(' ');
-
-  const areaPath =
-    `M ${toX(0).toFixed(1)},${H} ` +
-    data.map((d, i) => `L ${toX(i).toFixed(1)},${toY(d.km).toFixed(1)}`).join(' ') +
-    ` L ${toX(data.length - 1).toFixed(1)},${H} Z`;
-
-  const targetY = toY(phaseTarget);
-  const lastX = toX(data.length - 1);
-  const lastY = toY(data[data.length - 1]?.km ?? 0);
-  const lastKm = data[data.length - 1]?.km ?? 0;
-
-  return (
-    <svg width="100%" viewBox={`0 0 ${W} ${H + 20}`} preserveAspectRatio="xMidYMid meet">
-      <defs>
-        <linearGradient id="longRunArea" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.35" />
-          <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={areaPath} fill="url(#longRunArea)" />
-      <path d={linePath} fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      {phaseTarget > 0 && (
-        <line x1={0} y1={targetY} x2={W} y2={targetY}
-          stroke="#6366f1" strokeWidth="1.5" strokeDasharray="4,3" opacity="0.7" />
-      )}
-      <circle cx={lastX} cy={lastY} r={4} fill="#8b5cf6" />
-      <circle cx={lastX} cy={lastY} r={7} fill="#8b5cf6" fillOpacity="0.2" />
-      <text x={lastX} y={lastY - 10} textAnchor="middle" fontSize={9} fill="#c4b5fd" fontFamily="Inter,sans-serif" fontWeight="600">
-        {lastKm.toFixed(1)} km
-      </text>
-      {data.map((d, i) => (
-        <text key={d.week} x={toX(i)} y={H + 14} textAnchor="middle" fontSize={9}
-          fill={i === data.length - 1 ? '#c4b5fd' : 'rgba(255,255,255,0.3)'}
-          fontFamily="Inter,sans-serif">
-          {d.week}
-        </text>
-      ))}
-    </svg>
-  );
-}
-
-function VolumeBarChart({ data, target }: { data: { week: string; km: number; isCurrent: boolean }[]; target: number }) {
-  const W = 560;
-  const H = 90;
-  const maxKm = Math.max(...data.map(d => d.km), target, 1);
-  const slotW = W / data.length;
-  const barW = slotW - 8;
-  const targetY = H - (target / maxKm) * H;
-
-  return (
-    <svg width="100%" viewBox={`0 0 ${W} ${H + 20}`} preserveAspectRatio="xMidYMid meet">
-      {data.map((week, i) => {
-        const barH = Math.max((week.km / maxKm) * H, 2);
-        const x = i * slotW + 4;
-        const y = H - barH;
-        return (
-          <g key={week.week}>
-            <rect x={x} y={y} width={barW} height={barH} rx={4}
-              fill={week.isCurrent ? 'rgba(34,197,94,0.3)' : 'rgba(34,197,94,0.12)'}
-              stroke={week.isCurrent ? '#22c55e' : 'none'}
-              strokeWidth={week.isCurrent ? 1 : 0}
-            />
-            {week.isCurrent && (
-              <text x={x + barW / 2} y={y - 5} textAnchor="middle" fontSize={9}
-                fill="#4ade80" fontFamily="Inter,sans-serif" fontWeight="700">
-                {week.km.toFixed(1)}
-              </text>
-            )}
-            <text x={x + barW / 2} y={H + 14} textAnchor="middle" fontSize={9}
-              fill={week.isCurrent ? '#4ade80' : 'rgba(255,255,255,0.28)'}
-              fontFamily="Inter,sans-serif">
-              {week.week}
-            </text>
-          </g>
-        );
-      })}
-      {target > 0 && (
-        <>
-          <line x1={0} y1={targetY} x2={W} y2={targetY}
-            stroke="rgba(99,102,241,0.6)" strokeWidth="1.5" strokeDasharray="5,4" />
-          <text x={4} y={targetY - 4} fontSize={8} fill="rgba(165,180,252,0.8)" fontFamily="Inter,sans-serif">
-            {target} km
-          </text>
-        </>
-      )}
-    </svg>
-  );
-}
-
-function StreakDots({ days }: { days: { date: string; type: StreakDayType }[] }) {
-  return (
-    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-      {days.map((day, i) => {
-        const isLast = i === days.length - 1;
-        let bg = 'rgba(255,255,255,0.06)';
-        if (day.type === 'run') bg = 'rgba(34,197,94,0.5)';
-        else if (day.type === 'strength') bg = 'rgba(99,102,241,0.5)';
-        return (
-          <div key={day.date} style={{
-            width: 14, height: 14, borderRadius: 3, background: bg,
-            outline: isLast ? '2px solid #6366f1' : 'none', outlineOffset: 1,
-          }} />
-        );
-      })}
-    </div>
-  );
-}
-
-function VolumeTypeBar({ label, count, max, color }: { label: string; count: number; max: number; color: string }) {
-  const pct = max > 0 ? (count / max) * 100 : 0;
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-      <div style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
-      <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 70, flexShrink: 0 }}>{label}</span>
-      <div style={{ flex: 1, height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 4, background: color }} />
-      </div>
-      <span style={{ fontSize: 11, color: 'var(--text-secondary)', width: 16, textAlign: 'right', flexShrink: 0 }}>
-        {count}
-      </span>
-    </div>
-  );
 }
 
 export function DashboardPage() {
@@ -361,60 +209,16 @@ export function DashboardPage() {
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 12 }}>
-            <div style={{ ...GLASS, padding: '14px 12px' }}>
-              <Activity size={14} color="#22c55e" style={{ marginBottom: 8, opacity: 0.8 }} />
-              <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.02em', color: '#22c55e', marginBottom: 2 }}>
-                {weeklyRunKm.toFixed(1)}
-              </div>
-              <div style={{ fontSize: 9, color: 'var(--text-hint)', fontWeight: 500, letterSpacing: '.02em', marginBottom: 2 }}>
-                {LABEL_KM_SEMANA}
-              </div>
-              {phaseTarget > 0 && (
-                <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>
-                  {LABEL_META_KM} {phaseTarget} km
-                </div>
-              )}
-            </div>
-
-            <div style={{ ...GLASS, padding: '14px 12px' }}>
-              <TrendingUp size={14} color="#8b5cf6" style={{ marginBottom: 8, opacity: 0.8 }} />
-              <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.02em', color: '#8b5cf6', marginBottom: 2 }}>
-                {lastLongRun.toFixed(1)}
-              </div>
-              <div style={{ fontSize: 9, color: 'var(--text-hint)', fontWeight: 500, letterSpacing: '.02em', marginBottom: 2 }}>
-                {LABEL_ULTIMO_LONGAO}
-              </div>
-              {longRunTarget > 0 && (
-                <div style={{ fontSize: 9, color: longRunDelta >= 0 ? '#4ade80' : '#f87171' }}>
-                  {LABEL_META_ERA} {longRunTarget} km {longRunDelta >= 0 ? '✓' : '↓'}
-                </div>
-              )}
-            </div>
-
-            <div style={{ ...GLASS, padding: '14px 12px' }}>
-              <Zap size={14} color="#eab308" style={{ marginBottom: 8, opacity: 0.8 }} />
-              <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.02em', color: '#eab308', marginBottom: 2 }}>
-                {streak}
-              </div>
-              <div style={{ fontSize: 9, color: 'var(--text-hint)', fontWeight: 500, letterSpacing: '.02em' }}>
-                {LABEL_STREAK}
-              </div>
-            </div>
-
-            <div style={{ ...GLASS, padding: '14px 12px' }}>
-              <CalendarDays size={14} color="#6366f1" style={{ marginBottom: 8, opacity: 0.8 }} />
-              <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.02em', color: '#818cf8', marginBottom: 2 }}>
-                {done}/{total}
-              </div>
-              <div style={{ fontSize: 9, color: 'var(--text-hint)', fontWeight: 500, letterSpacing: '.02em', marginBottom: 2 }}>
-                {LABEL_TREINOS_FEITOS}
-              </div>
-              <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>
-                {LABEL_ESTA_SEMANA}
-              </div>
-            </div>
-          </div>
+          <KPIBanner
+            weeklyRunKm={weeklyRunKm}
+            phaseTarget={phaseTarget}
+            lastLongRun={lastLongRun}
+            longRunTarget={longRunTarget}
+            longRunDelta={longRunDelta}
+            streak={streak}
+            done={done}
+            total={total}
+          />
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
             <div style={{ ...GLASS, padding: '16px' }}>
@@ -436,7 +240,7 @@ export function DashboardPage() {
                   </div>
                 )}
               </div>
-              <LongRunChart data={longRunChartData} phaseTarget={longRunTarget} />
+              <LongRunProgressChart data={longRunChartData} phaseTarget={longRunTarget} />
               <div style={{ display: 'flex', gap: 14, marginTop: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <div style={{ width: 16, height: 2, borderRadius: 1, background: '#8b5cf6' }} />
@@ -504,7 +308,7 @@ export function DashboardPage() {
                 </span>
               )}
             </div>
-            <VolumeBarChart data={volumeChartData} target={phaseTarget} />
+            <WeeklyVolumeChart data={volumeChartData} target={phaseTarget} />
           </div>
 
         </div>

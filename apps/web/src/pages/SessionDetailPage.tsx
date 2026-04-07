@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { type CSSProperties, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   CheckCircle2,
@@ -9,7 +9,6 @@ import {
   Trash2,
 } from 'lucide-react';
 import type { TrainingSession } from '@paceplan/types';
-import { Environment, FEELING_LABELS } from '@paceplan/types';
 import { LogForm } from '../components/SessionLog/LogForm';
 import { sessionService } from '../services/sessionService';
 import {
@@ -17,29 +16,24 @@ import {
   formatDate,
   formatDistance,
   formatPace,
-  formatPaceDelta,
-  getEnvironmentLabel,
   getTypeColor,
   getTypeLabel,
-  isPaceFaster,
   isRunningSession,
 } from '../services/sessionUtils';
+import { SectionLabel } from '../components/UI/SessionDetail/SectionLabel';
+import { MetaRow } from '../components/UI/SessionDetail/MetaRow';
+import { EnvironmentBadge } from '../components/UI/SessionDetail/EnvironmentBadge';
+import { LogSummary } from '../components/UI/SessionDetail/LogSummary';
+import { StatusBadge } from '../components/UI/SessionDetail/StatusBadge';
 
 const PAGE_TITLE = 'Detalhes do treino';
 const SECTION_PLANO = 'Plano';
-const SECTION_RESULTADO = 'Treino realizado';
 const SECTION_CONCLUIR = 'Concluir treino';
 const LABEL_DATA = 'Data';
 const LABEL_DISTANCIA_ALVO = 'Distância alvo';
 const LABEL_PACE_ALVO = 'Pace alvo';
 const LABEL_AMBIENTE = 'Ambiente';
 const LABEL_NOTAS = 'Notas';
-const LABEL_DISTANCIA_REAL = 'Distância real';
-const LABEL_PACE_REAL = 'Pace real';
-const LABEL_BPM_AVG = 'BPM médio';
-const LABEL_BPM_MAX = 'BPM máximo';
-const LABEL_SENSACAO = 'Sensação';
-const LABEL_CONCLUSAO = 'Concluído em';
 const BTN_CONCLUIR = 'Concluir treino';
 const BTN_PULAR = 'Pular treino';
 const BTN_EDITAR = 'Editar';
@@ -60,90 +54,9 @@ const STATUS_CONFIG = {
   skipped: { label: 'Pulado',    bg: 'rgba(239,68,68,.12)',    color: '#f87171',            border: 'rgba(239,68,68,.15)'  },
 };
 
-function SectionLabel({ text }: { text: string }) {
-  return (
-    <p style={{
-      fontSize: 10, fontWeight: 600, letterSpacing: '.08em',
-      textTransform: 'uppercase', color: 'var(--text-hint)',
-      marginBottom: 10, marginTop: 24,
-    }}>
-      {text}
-    </p>
-  );
-}
 
-function DeltaBadge({ text, positive }: { text: string; positive: boolean }) {
-  return (
-    <span style={{
-      fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 6,
-      background: positive ? 'rgba(34,197,94,.14)' : 'rgba(239,68,68,.12)',
-      color: positive ? '#4ade80' : '#f87171',
-      border: `1px solid ${positive ? 'rgba(34,197,94,.2)' : 'rgba(239,68,68,.15)'}`,
-      marginLeft: 8, whiteSpace: 'nowrap' as const,
-    }}>
-      {text}
-    </span>
-  );
-}
 
-function MetaRow({ label, value, children }: { label: string; value: string; children?: React.ReactNode }) {
-  return (
-    <div style={{
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,.05)',
-    }}>
-      <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{label}</span>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{value}</span>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function EnvironmentBadge({ env }: { env: Environment }) {
-  const isOutdoor = env === Environment.OUTDOOR;
-  return (
-    <span style={{
-      fontSize: 10, fontWeight: 600, padding: '3px 9px', borderRadius: 7,
-      background: isOutdoor ? 'rgba(34,197,94,.12)' : 'rgba(99,102,241,.12)',
-      color: isOutdoor ? '#4ade80' : '#a5b4fc',
-      border: `1px solid ${isOutdoor ? 'rgba(34,197,94,.2)' : 'rgba(99,102,241,.2)'}`,
-    }}>
-      {getEnvironmentLabel(env)}
-    </span>
-  );
-}
-
-function FeelingCircles({ feeling }: { feeling: 1 | 2 | 3 | 4 | 5 }) {
-  return (
-    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-      {([1, 2, 3, 4, 5] as const).map((f) => (
-        <div
-          key={f}
-          style={{
-            width: 10, height: 10, borderRadius: '50%',
-            background: f <= feeling ? 'var(--color-primary)' : 'rgba(255,255,255,.12)',
-            border: f <= feeling ? 'none' : '1px solid rgba(255,255,255,.15)',
-          }}
-        />
-      ))}
-      <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 4 }}>
-        {FEELING_LABELS[feeling]}
-      </span>
-    </div>
-  );
-}
-
-function formatCompletedAt(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleString('pt-BR', {
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  });
-}
-
-const headerStyle: React.CSSProperties = {
+const headerStyle: CSSProperties = {
   display: 'flex', alignItems: 'center', gap: 12,
   padding: '14px 16px',
   borderBottom: '1px solid rgba(255,255,255,.08)',
@@ -153,7 +66,7 @@ const headerStyle: React.CSSProperties = {
   flexShrink: 0,
 };
 
-const glassCard: React.CSSProperties = {
+const glassCard: CSSProperties = {
   borderRadius: 14, overflow: 'hidden',
   background: 'var(--glass-bg)',
   border: '1px solid var(--glass-border)',
@@ -281,14 +194,7 @@ export function SessionDetailPage() {
         <h1 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-primary)' }}>
           {getTypeLabel(session.type)}
         </h1>
-        <span style={{
-          marginLeft: 'auto',
-          fontSize: 10, fontWeight: 600, padding: '3px 9px', borderRadius: 7,
-          background: statusCfg.bg, color: statusCfg.color,
-          border: `1px solid ${statusCfg.border}`, whiteSpace: 'nowrap' as const,
-        }}>
-          {statusCfg.label}
-        </span>
+        <StatusBadge statusCfg={statusCfg} />
       </header>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 16, paddingBottom: 32 }}>
@@ -353,79 +259,9 @@ export function SessionDetailPage() {
           </div>
         </div>
 
-        {session.status === 'done' && session.log != null && (() => {
-          const log = session.log;
-          return (
-            <>
-              <SectionLabel text={SECTION_RESULTADO} />
-              <div style={{ ...glassCard, border: '1px solid rgba(34,197,94,.18)' }}>
-                <div style={{ padding: '4px 14px 4px' }}>
-                  {withDist && (
-                    <>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,.05)' }}>
-                        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{LABEL_DISTANCIA_REAL}</span>
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-                            {log.actualDistance != null ? formatDistance(log.actualDistance) : '—'}
-                          </span>
-                          {session.targetDistance != null && log.actualDistance != null && (() => {
-                            const diff = log.actualDistance - session.targetDistance;
-                            const pos = diff >= 0;
-                            return <DeltaBadge text={`${pos ? '+' : '−'}${Math.abs(diff).toFixed(1)} km`} positive={pos} />;
-                          })()}
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,.05)' }}>
-                        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{LABEL_PACE_REAL}</span>
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-                            {log.actualPace != null ? formatPace(log.actualPace) : '—'}
-                          </span>
-                          {session.targetPace != null && log.actualPace != null && (
-                            <DeltaBadge
-                              text={formatPaceDelta(log.actualPace, session.targetPace)}
-                              positive={isPaceFaster(log.actualPace, session.targetPace)}
-                            />
-                          )}
-                        </div>
-                      </div>
-
-                      {log.heartRateAvg != null && (
-                        <MetaRow label={LABEL_BPM_AVG} value={`${log.heartRateAvg} bpm`} />
-                      )}
-                      {log.heartRateMax != null && (
-                        <MetaRow label={LABEL_BPM_MAX} value={`${log.heartRateMax} bpm`} />
-                      )}
-                    </>
-                  )}
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,.05)' }}>
-                    <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{LABEL_SENSACAO}</span>
-                    <FeelingCircles feeling={log.feeling} />
-                  </div>
-
-                  {log.notes != null && log.notes !== '' && (
-                    <div style={{ padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,.05)' }}>
-                      <span style={{ fontSize: 11, color: 'var(--text-hint)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600 }}>
-                        {LABEL_NOTAS}
-                      </span>
-                      <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.5 }}>
-                        {log.notes}
-                      </p>
-                    </div>
-                  )}
-
-                  <div style={{ padding: '10px 0' }}>
-                    <span style={{ fontSize: 12, color: 'var(--text-hint)' }}>
-                      {LABEL_CONCLUSAO}: {formatCompletedAt(log.completedAt)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </>
-          );
-        })()}
+        {session.status === 'done' && session.log != null && (
+          <LogSummary session={session} log={session.log} withDist={withDist} />
+        )}
 
         {session.status === 'planned' && showLogForm && (
           <>
