@@ -4,6 +4,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { EditSessionPage } from './pages/EditSessionPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { MacrocyclePage } from './pages/MacrocyclePage';
+import { NewMacrocyclePage } from './pages/NewMacrocyclePage';
 import { NewSessionPage } from './pages/NewSessionPage';
 import { SessionDetailPage } from './pages/SessionDetailPage';
 import { WeekPage } from './pages/WeekPage';
@@ -21,6 +22,7 @@ export function App() {
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/macrocycle" element={<MacrocyclePage />} />
+          <Route path="/macrocycle/new" element={<NewMacrocyclePage />} />
         </Routes>
       </Layout>
     </BrowserRouter>
