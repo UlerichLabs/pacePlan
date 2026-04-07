@@ -2,14 +2,29 @@ import type { Macrocycle, Phase } from '@paceplan/types';
 
 const BASE = '/api/macrocycles';
 
+export class MacrocycleApiError extends Error {
+  statusCode: number;
+  code: string;
+  constructor(message: string, statusCode: number, code: string) {
+    super(message);
+    this.name = 'MacrocycleApiError';
+    this.statusCode = statusCode;
+    this.code = code;
+  }
+}
+
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   });
   if (!res.ok) {
-    const body = await res.json().catch(() => ({})) as { error?: string };
-    throw new Error(body.error ?? `HTTP ${res.status}`);
+    const body = await res.json().catch(() => ({})) as { error?: string; code?: string; statusCode?: number };
+    throw new MacrocycleApiError(
+      body.error ?? `HTTP ${res.status}`,
+      body.statusCode ?? res.status,
+      body.code ?? '',
+    );
   }
   const body = await res.json() as { data: T };
   return body.data;
@@ -32,12 +47,36 @@ export interface CreatePhasePayload {
   weeklyVolumeTarget?: number | undefined;
 }
 
+interface CreateMacrocycleResponse {
+  status: string;
+  code: string;
+  message: string;
+  macrocycle: Macrocycle;
+}
+
 export const macrocycleService = {
   getActive: () =>
     request<{ macrocycle: Macrocycle; phases: Phase[] } | null>(`${BASE}/active`),
 
-  create: (payload: CreateMacrocyclePayload) =>
-    request<Macrocycle>(BASE, { method: 'POST', body: JSON.stringify(payload) }),
+  async create(payload: CreateMacrocyclePayload): Promise<Macrocycle> {
+    const res = await fetch(BASE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const body = await res.json().catch(() => ({})) as Partial<CreateMacrocycleResponse> & { error?: string; code?: string; statusCode?: number };
+
+    if (!res.ok) {
+      throw new MacrocycleApiError(
+        body.error ?? `HTTP ${res.status}`,
+        body.statusCode ?? res.status,
+        body.code ?? '',
+      );
+    }
+
+    return body.macrocycle as Macrocycle;
+  },
 
   async archiveActive(): Promise<Macrocycle> {
     const res = await fetch(`${BASE}/active/archive`, {
