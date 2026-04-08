@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import type { CreateSessionPayload } from '@paceplan/types';
 import { SessionForm } from '../components/SessionForm/SessionForm';
-import { sessionService } from '../services/sessionService';
+import { sessionService } from '@paceplan/api-client';
 
 const PAGE_TITLE = 'Novo treino';
 

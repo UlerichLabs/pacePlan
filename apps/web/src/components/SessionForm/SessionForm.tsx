@@ -3,7 +3,7 @@ import type { CreateSessionPayload } from '@paceplan/types';
 import { Environment, SessionType } from '@paceplan/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { isRunningSession } from '../../services/sessionUtils';
+import { isRunningSession } from '@paceplan/utils';
 import { PaceInput } from './PaceInput';
 import { SessionTypeSelect } from './SessionTypeSelect';
 

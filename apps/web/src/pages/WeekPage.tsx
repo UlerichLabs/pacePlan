@@ -2,11 +2,9 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useWeek } from '../hooks/useWeek';
-import { useSessions } from '../hooks/useSessions';
-import { useActiveContext } from '../hooks/useActiveContext';
+import { useWeek, useSessions, useActiveContext, SESSION_ICONS } from '@paceplan/ui-logic';
+import { formatDate, getTypeColor, getTypeLabel, isToday } from '@paceplan/utils';
 import { ContextBanner } from '../components/WeekView/ContextBanner';
-import { formatDate, getTypeColor, getTypeLabel, isToday, SESSION_ICONS } from '../services/sessionUtils';
 
 const PAGE_TITLE = 'Semana';
 const LABEL_ESTA_SEMANA = 'Esta semana';

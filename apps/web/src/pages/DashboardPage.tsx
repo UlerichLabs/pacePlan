@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { SessionType } from '@paceplan/types';
 import type { TrainingSession } from '@paceplan/types';
-import { useMacrocycle } from '../hooks/useMacrocycle';
-import { useSessions } from '../hooks/useSessions';
-import { isRunningSession, isStrengthSession } from '../services/sessionUtils';
+import { useMacrocycle, useSessions } from '@paceplan/ui-logic';
+import { isRunningSession, isStrengthSession } from '@paceplan/utils';
 import { KPIBanner } from '../components/UI/Dashboard/KPIBanner';
 import { LongRunProgressChart } from '../components/UI/Dashboard/LongRunProgressChart';
 import { WeeklyVolumeChart } from '../components/UI/Dashboard/WeeklyVolumeChart';

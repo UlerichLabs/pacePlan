@@ -4,9 +4,8 @@ import { Heart, ScrollText } from 'lucide-react';
 import type { TrainingSession } from '@paceplan/types';
 import { FEELING_LABELS } from '@paceplan/types';
 import { cn } from '@/lib/utils';
-import { useSessions } from '../hooks/useSessions';
+import { useSessions, SESSION_ICONS } from '@paceplan/ui-logic';
 import {
-  SESSION_ICONS,
   formatDate,
   formatDistance,
   formatPace,
@@ -14,7 +13,7 @@ import {
   getTypeLabel,
   isRunningSession,
   isStrengthSession,
-} from '../services/sessionUtils';
+} from '@paceplan/utils';
 
 const PAGE_TITLE = 'Histórico';
 const FILTER_ALL = 'Tudo';

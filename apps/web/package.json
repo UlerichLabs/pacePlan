@@ -14,6 +14,8 @@
     "@fontsource/inter": "^5.2.8",
     "@paceplan/api-client": "workspace:*",
     "@paceplan/types": "workspace:*",
+    "@paceplan/ui-logic": "workspace:*",
+    "@paceplan/utils": "workspace:*",
     "@tailwindcss/vite": "^4.2.2",
     "@tanstack/react-query": "^5.96.2",
     "class-variance-authority": "^0.7.1",

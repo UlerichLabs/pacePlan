@@ -1,4 +1,4 @@
-import type { ActiveContext } from '../../services/macrocycleService';
+import type { ActiveContext } from '@paceplan/api-client';
 
 const CODE_NO_CURRENT_PHASE = '200.010';
 

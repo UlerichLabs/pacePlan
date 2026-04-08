@@ -2,8 +2,8 @@ import { type FormEvent, useState } from 'react';
 import type { FeelingScale, LogSessionPayload, TrainingSession } from '@paceplan/types';
 import { SessionType } from '@paceplan/types';
 import { Button } from '@/components/ui/button';
-import { isRunningSession } from '../../services/sessionUtils';
-import { sessionService } from '../../services/sessionService';
+import { isRunningSession } from '@paceplan/utils';
+import { sessionService } from '@paceplan/api-client';
 import { PaceInput } from '../SessionForm/PaceInput';
 import { FeelingScalePicker } from './FeelingScale';
 

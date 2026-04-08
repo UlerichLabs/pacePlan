@@ -1,0 +1,22 @@
+{
+  "name": "@paceplan/ui-logic",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@paceplan/api-client": "workspace:*",
+    "@paceplan/types": "workspace:*",
+    "@paceplan/utils": "workspace:*",
+    "@tanstack/react-query": "^5.96.2",
+    "lucide-react": "^0.469.0",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.17"
+  }
+}

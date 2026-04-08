@@ -1,15 +1,3 @@
-import type { LucideIcon } from 'lucide-react';
-import {
-  Activity,
-  Dumbbell,
-  Gauge,
-  Moon,
-  PersonStanding,
-  Timer,
-  Trophy,
-  TrendingUp,
-  Wind,
-} from 'lucide-react';
 import {
   Environment,
   RUNNING_TYPES,
@@ -18,19 +6,7 @@ import {
   SessionType,
   STRENGTH_TYPES,
 } from '@paceplan/types';
-
-export const SESSION_ICONS: Record<SessionType, LucideIcon> = {
-  [SessionType.EASY_RUN]:       Activity,
-  [SessionType.QUALITY_RUN]:    Timer,
-  [SessionType.LONG_RUN]:       TrendingUp,
-  [SessionType.PACE_RUN]:       Gauge,
-  [SessionType.RECOVERY_RUN]:   Wind,
-  [SessionType.RACE]:           Trophy,
-  [SessionType.STRENGTH_LOWER]: Dumbbell,
-  [SessionType.STRENGTH_UPPER]: Dumbbell,
-  [SessionType.MOBILITY]:       PersonStanding,
-  [SessionType.REST]:           Moon,
-};
+import type { Phase } from '@paceplan/types';
 
 export function isRunningSession(type: SessionType): boolean {
   return RUNNING_TYPES.includes(type);
@@ -91,4 +67,38 @@ export function formatPaceDelta(actual: string, target: string): string {
 
 export function isPaceFaster(actual: string, target: string): boolean {
   return parsePaceToSeconds(actual) < parsePaceToSeconds(target);
+}
+
+export function getCurrentPhase(phases: Phase[], today: string): Phase | null {
+  return phases.find((p) => p.startDate <= today && p.endDate >= today) ?? null;
+}
+
+export function getWeekNumberInPhase(phase: Phase, today: string): number {
+  const start = new Date(phase.startDate);
+  const current = new Date(today);
+  const diffDays = Math.floor((current.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.floor(diffDays / 7) + 1;
+}
+
+export function getTotalWeeksInPhase(phase: Phase): number {
+  const start = new Date(phase.startDate);
+  const end = new Date(phase.endDate);
+  const diffDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.ceil(diffDays / 7);
+}
+
+export function getWeeksToRace(raceDate: string, today: string): number {
+  const race = new Date(raceDate);
+  const now = new Date(today);
+  const diffDays = Math.floor((race.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.max(0, Math.ceil(diffDays / 7));
+}
+
+export function getPhaseProgressPct(phase: Phase, today: string): number {
+  const start = new Date(phase.startDate);
+  const end = new Date(phase.endDate);
+  const current = new Date(today);
+  const total = end.getTime() - start.getTime();
+  const elapsed = current.getTime() - start.getTime();
+  return Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)));
 }
