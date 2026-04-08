@@ -3,7 +3,7 @@ import { SectionLabel } from './SectionLabel';
 import { DeltaBadge } from './DeltaBadge';
 import { MetaRow } from './MetaRow';
 import { FeelingCircles } from './FeelingCircles';
-import { formatDistance, formatPace, formatPaceDelta, isPaceFaster } from '../../../services/sessionUtils';
+import { formatDistance, formatPace, formatPaceDelta, isPaceFaster } from '@paceplan/utils';
 
 const SECTION_RESULTADO = 'Treino realizado';
 const LABEL_DISTANCIA_REAL = 'Distância real';

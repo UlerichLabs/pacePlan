@@ -24,6 +24,13 @@ export class MacrocycleApiError extends Error {
   }
 }
 
+export interface CreateMacrocyclePayload {
+  name: string;
+  goalDistance: number;
+  raceDate: string;
+  startDate: string;
+}
+
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json' },
@@ -39,23 +46,6 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   }
   const body = await res.json() as { data: T };
   return body.data;
-}
-
-export interface CreateMacrocyclePayload {
-  name: string;
-  goalDistance: number;
-  raceDate: string;
-  startDate: string;
-}
-
-export interface CreatePhasePayload {
-  name: string;
-  objective: string;
-  startDate: string;
-  endDate: string;
-  orderIndex: number;
-  longRunTarget?: number | undefined;
-  weeklyVolumeTarget?: number | undefined;
 }
 
 interface CreateMacrocycleResponse {
@@ -101,9 +91,6 @@ export const macrocycleService = {
 
   getPhases: (id: string) =>
     request<Phase[]>(`${BASE}/${id}/phases`),
-
-  createPhase: (id: string, payload: CreatePhasePayload) =>
-    request<Phase>(`${BASE}/${id}/phases`, { method: 'POST', body: JSON.stringify(payload) }),
 
   async getActiveContext(): Promise<{ status: string; code: string; context: ActiveContext }> {
     const res = await fetch(`${BASE}/active/context`, {

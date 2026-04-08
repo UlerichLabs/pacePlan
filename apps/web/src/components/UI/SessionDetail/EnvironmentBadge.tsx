@@ -1,6 +1,6 @@
 import { Environment } from '@paceplan/types';
 import { cn } from '@/lib/utils';
-import { getEnvironmentLabel } from '../../../services/sessionUtils';
+import { getEnvironmentLabel } from '@paceplan/utils';
 
 export function EnvironmentBadge({ env }: { env: Environment }) {
   const isOutdoor = env === Environment.OUTDOOR;

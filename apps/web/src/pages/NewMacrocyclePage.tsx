@@ -2,7 +2,7 @@ import { type FormEvent, useState } from 'react';
 import { ChevronLeft, Target, AlertCircle, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { macrocycleService } from '../services/macrocycleService';
+import { macrocycleService } from '@paceplan/api-client';
 
 const TITLE = 'Novo Projeto de Treino';
 const LABEL_NOME = 'Nome do projeto';

@@ -11,16 +11,16 @@ import {
 import type { TrainingSession } from '@paceplan/types';
 import { Button } from '@/components/ui/button';
 import { LogForm } from '../components/SessionLog/LogForm';
-import { sessionService } from '../services/sessionService';
+import { sessionService } from '@paceplan/api-client';
+import { SESSION_ICONS } from '@paceplan/ui-logic';
 import {
-  SESSION_ICONS,
   formatDate,
   formatDistance,
   formatPace,
   getTypeColor,
   getTypeLabel,
   isRunningSession,
-} from '../services/sessionUtils';
+} from '@paceplan/utils';
 import { SectionLabel } from '../components/UI/SessionDetail/SectionLabel';
 import { MetaRow } from '../components/UI/SessionDetail/MetaRow';
 import { EnvironmentBadge } from '../components/UI/SessionDetail/EnvironmentBadge';

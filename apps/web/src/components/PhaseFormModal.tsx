@@ -2,7 +2,7 @@ import { type FormEvent, useState } from 'react';
 import { X, AlertCircle, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { phaseService, PhaseApiError } from '../services/phaseService';
+import { phaseService, PhaseApiError } from '@paceplan/api-client';
 
 const TITLE = 'Nova Fase';
 const LABEL_NOME = 'Nome da fase';

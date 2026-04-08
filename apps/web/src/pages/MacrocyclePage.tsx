@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { ChevronLeft, Plus, Target, Archive, FolderOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { useMacrocycle } from '../hooks/useMacrocycle';
-import { macrocycleService } from '../services/macrocycleService';
+import { useMacrocycle } from '@paceplan/ui-logic';
+import { macrocycleService } from '@paceplan/api-client';
 import { PhaseFormModal } from '../components/PhaseFormModal';
 
 const PAGE_TITLE = 'Macrociclo';

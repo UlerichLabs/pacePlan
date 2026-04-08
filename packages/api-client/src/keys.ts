@@ -8,6 +8,7 @@ export const sessionKeys = {
 export const macrocycleKeys = {
   all: ['macrocycles'] as const,
   active: () => ['macrocycles', 'active'] as const,
+  activeContext: () => ['macrocycles', 'active', 'context'] as const,
   detail: (id: string) => ['macrocycles', id] as const,
   phases: (id: string) => ['macrocycles', id, 'phases'] as const,
   paceProfile: (id: string) => ['macrocycles', id, 'pace-profile'] as const,
