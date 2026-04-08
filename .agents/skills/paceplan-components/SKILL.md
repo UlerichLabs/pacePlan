@@ -1,163 +1,341 @@
 ---
 name: paceplan-components
-description: Padrões de componentes React do PacePlan — estrutura, props, lógica de estado, hooks e exemplos de código. Use junto com paceplan-design para visual. Invoque quando for criar componentes React, implementar lógica de UI, usar hooks useSessions ou useWeek, ou trabalhar com formulários e interações em apps/web.
-license: Proprietary
+description: >
+  Padrões de componentes React do PacePlan — estrutura de página, hooks
+  de dados com TanStack Query, utilitários e componentes de formulário.
+  Use junto com paceplan-design para visual. Invoque quando for criar
+  componentes React, implementar lógica de UI, trabalhar com hooks de
+  dados ou formulários em apps/web.
+compatibility: >
+  Claude Code, Gemini CLI, Codex. Stack: React 18 + Vite 6 + TypeScript
+  + TanStack Query v5 + React Router Dom v6 + Shadcn/ui + Tailwind v4.
 metadata:
   author: UlerichLabs
-  version: "1.0"
+  version: "2.0"
   project: paceplan
-compatibility: Claude Code, Gemini CLI, Codex — qualquer agente com suporte ao padrão Agent Skills
 ---
 
-## Regras absolutas de código
+## Regras absolutas
 
 - ZERO `any` ou `as unknown`
-- ZERO emojis — sempre Lucide icons
-- ZERO bibliotecas de UI (MUI, Chakra, Radix, shadcn, etc)
-- ZERO CSS modules, styled-components, Tailwind
+- ZERO emojis — sempre Lucide React
 - ZERO class components React
 - ZERO `console.log`
 - ZERO comentários no código
 - ZERO tipos duplicados que existem em `@paceplan/types`
-- Para visual e design system, consultar também a skill `paceplan-design`
-
----
+- ZERO `useState + useEffect` para dados remotos — sempre TanStack Query
+- ZERO fetch direto em componente — sempre via hook de `@paceplan/ui-logic`
+- Para visual e design system, consultar sempre `paceplan-design`
 
 ## Estrutura de página padrão
 
-```tsx
+# Páginas são orquestração pura — sem lógica inline, sem JSX pesado.
+# Header com glass-strong, conteúdo scrollável, máximo 200 linhas.
+
 export function MinhaPage() {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <header style={{
-        display: 'flex', alignItems: 'center', gap: 12,
-        padding: '14px 16px',
-        borderBottom: '1px solid rgba(255,255,255,.08)',
-        background: 'rgba(255,255,255,.06)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        flexShrink: 0,
-      }}>
-        <button onClick={() => navigate(-1)} style={{ color: 'var(--text-muted)', display: 'flex' }}>
-          <ChevronLeft size={22} />
-        </button>
-        <h1 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-primary)' }}>
+    
+
+      
+
+         navigate(-1)}
+          className="text-[--text-muted] hover:text-[--text-primary]"
+        >
+          
+        
+        
+
           Título
-        </h1>
-      </header>
-      <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+        
+
+      
+
+      
+
         {/* conteúdo */}
-      </div>
-    </div>
-  );
+      
+
+    
+
+  )
 }
-```
 
----
+## Hooks de dados — @paceplan/ui-logic
 
-## Hooks disponíveis
+# Todos os hooks vivem em packages/ui-logic/src/
+# Importar sempre de @paceplan/ui-logic — nunca recriar em apps/web
+# Construídos sobre TanStack Query — expõem interface limpa para os componentes
 
 ### useSessions(startDate, endDate)
-```ts
+
+import { useSessions } from '@paceplan/ui-logic'
+
 const {
   sessions,          // TrainingSession[]
-  loading,           // boolean
-  error,             // string | null
-  createSession,     // (payload: CreateSessionPayload) => Promise<TrainingSession>
-  updateSession,     // (id: string, payload: UpdateSessionPayload) => Promise<TrainingSession>
-  logSession,        // (id: string, payload: LogSessionPayload) => Promise<TrainingSession>
-  skipSession,       // (id: string) => Promise<void>
-  reactivateSession, // (id: string) => Promise<void>
-  deleteSession,     // (id: string) => Promise<void>
-  refetch,           // () => Promise<void>
-} = useSessions(startDate, endDate);
-```
+  isPending,         // boolean — carregando pela primeira vez
+  isFetching,        // boolean — refetch em background
+  error,             // Error | null
+
+  createSession,     // (payload: CreateSessionPayload) => Promise
+  updateSession,     // (id: string, payload: UpdateSessionPayload) => Promise
+  logSession,        // (id: string, payload: LogSessionPayload) => Promise
+  skipSession,       // (id: string) => Promise
+  reactivateSession, // (id: string) => Promise
+  deleteSession,     // (id: string) => Promise
+} = useSessions(startDate, endDate)
+
+# Implementação interna (packages/ui-logic/src/useSessions.ts)
+export function useSessions(startDate: string, endDate: string) {
+  const queryClient = useQueryClient()
+
+  const query = useQuery({
+    queryKey: sessionKeys.range(startDate, endDate),
+    queryFn: () => getSessions(startDate, endDate),
+  })
+
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: sessionKeys.range(startDate, endDate) })
+
+  const createMutation = useMutation({
+    mutationFn: createSession,
+    onSuccess: invalidate,
+  })
+
+  const logMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: LogSessionPayload }) =>
+      logSession(id, payload),
+    onSuccess: invalidate,
+  })
+
+  return {
+    sessions: query.data ?? [],
+    isPending: query.isPending,
+    isFetching: query.isFetching,
+    error: query.error,
+    createSession: createMutation.mutateAsync,
+    logSession: (id: string, payload: LogSessionPayload) =>
+      logMutation.mutateAsync({ id, payload }),
+    skipSession: /* useMutation similar */ ...,
+    reactivateSession: /* useMutation similar */ ...,
+    updateSession: /* useMutation similar */ ...,
+    deleteSession: /* useMutation similar */ ...,
+  }
+}
 
 ### useWeek(initialDate?)
-```ts
+
+import { useWeek } from '@paceplan/ui-logic'
+
 const {
-  weekStart,       // string YYYY-MM-DD (segunda-feira)
-  weekEnd,         // string YYYY-MM-DD (domingo)
-  days,            // string[] — 7 datas da semana
-  isCurrentWeek,   // boolean
-  goToPrevWeek,    // () => void
-  goToNextWeek,    // () => void
-  goToCurrentWeek, // () => void
-} = useWeek();
-```
+  weekStart,        // string YYYY-MM-DD (segunda-feira)
+  weekEnd,          // string YYYY-MM-DD (domingo)
+  days,             // string[] — 7 datas da semana
+  isCurrentWeek,    // boolean
+  goToPrevWeek,     // () => void
+  goToNextWeek,     // () => void
+  goToCurrentWeek,  // () => void
+} = useWeek()
 
----
+# Implementação interna (packages/ui-logic/src/useWeek.ts)
+# Estado local — não usa TanStack Query (não é dado remoto)
+export function useWeek(initialDate?: string) {
+  const [weekStart, setWeekStart] = useState(() =>
+    getWeekStart(initialDate ?? new Date().toISOString().slice(0, 10))
+  )
 
-## Utilitários (sessionUtils.ts)
+  const weekEnd = addDays(weekStart, 6)
+  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+  const isCurrentWeek = weekStart === getWeekStart(
+    new Date().toISOString().slice(0, 10)
+  )
 
-```ts
-getTypeColor(type: SessionType): string      // ex: "#22c55e"
-getTypeLabel(type: SessionType): string      // ex: "Easy Run"
-hasDistance(type: SessionType): boolean      // false só para REST_DAY
-formatPace(pace: string): string             // "5:30" → "5:30/km"
-formatDistance(km: number): string           // 10.5 → "10.5 km"
-formatDate(iso: string): string              // "seg., 7 de abr."
-isToday(iso: string): boolean
-```
+  return {
+    weekStart,
+    weekEnd,
+    days,
+    isCurrentWeek,
+    goToPrevWeek:     () => setWeekStart(w => addDays(w, -7)),
+    goToNextWeek:     () => setWeekStart(w => addDays(w, 7)),
+    goToCurrentWeek:  () => setWeekStart(getWeekStart(
+      new Date().toISOString().slice(0, 10)
+    )),
+  }
+}
 
----
+### useMacrocycleActive()
+
+import { useMacrocycleActive } from '@paceplan/ui-logic'
+
+const {
+  macrocycle,    // Macrocycle | null
+  currentPhase,  // Phase | null
+  weekIndex,     // number — semana atual dentro da fase (1-based)
+  totalWeeks,    // number — total de semanas da fase
+  isPending,     // boolean
+} = useMacrocycleActive()
+
+## Query keys — @paceplan/api-client
+
+# Centralizar em packages/api-client/src/keys.ts
+# Usar em todos os hooks — nunca strings soltas nos queryKey
+
+export const sessionKeys = {
+  all:   ['sessions'] as const,
+  range: (start: string, end: string) => ['sessions', start, end] as const,
+  detail: (id: string) => ['sessions', id] as const,
+}
+
+export const macrocycleKeys = {
+  active: ['macrocycle', 'active'] as const,
+  phases: (id: string) => ['macrocycle', id, 'phases'] as const,
+}
+
+## Utilitários — @paceplan/utils
+
+# Importar sempre de @paceplan/utils — nunca recriar em apps/web
+
+import {
+  getTypeColor,      // (type: SessionType) => string  — ex: "#22c55e"
+  getTypeLabel,      // (type: SessionType) => string  — ex: "Easy Run"
+  isRunningSession,  // (type: SessionType) => boolean
+  formatPace,        // (pace: string) => string        — "5:30" → "5:30/km"
+  formatDistance,    // (km: number) => string          — 10.5 → "10.5 km"
+  formatDate,        // (iso: string) => string         — "seg., 7 de abr."
+  isToday,           // (iso: string) => boolean
+  getWeekStart,      // (iso: string) => string         — retorna segunda-feira
+  addDays,           // (iso: string, n: number) => string
+} from '@paceplan/utils'
 
 ## PaceInput
 
-```tsx
-function PaceInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const isValid = !value || /^\d{1,2}:\d{2}$/.test(value);
+# Input validado para pace no formato MM:SS.
+# Borda vermelho quando formato inválido.
+
+export function PaceInput({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (v: string) => void
+}) {
+  const isValid = !value || /^\d{1,2}:\d{2}$/.test(value)
+
   return (
-    <input
-      type="text" placeholder="5:30" value={value}
-      onChange={(e) => onChange(e.target.value)}
-      style={{
-        width: '100%', padding: '11px 14px', borderRadius: 10,
-        background: 'rgba(255,255,255,.06)',
-        border: `1px solid ${isValid ? 'rgba(255,255,255,.10)' : 'rgba(239,68,68,.4)'}`,
-        color: 'var(--text-primary)', fontSize: 14, outline: 'none',
-      }}
+     onChange(e.target.value)}
+      className={cn(
+        'input-glass',
+        !isValid && 'border-[--color-danger]/40 focus:border-[--color-danger]/60'
+      )}
     />
-  );
+  )
 }
-```
 
 ## SessionTypeSelect
 
-```tsx
-<select value={type} onChange={(e) => setType(e.target.value as SessionType)}
-  style={{
-    width: '100%', padding: '11px 14px', borderRadius: 10,
-    background: 'rgba(255,255,255,.06)',
-    border: '1px solid rgba(255,255,255,.10)',
-    color: 'var(--text-primary)', fontSize: 14,
-  }}>
-  {Object.values(SessionType).map((t) => (
-    <option key={t} value={t} style={{ background: '#1a1d27' }}>
-      {SESSION_TYPE_LABELS[t]}
-    </option>
-  ))}
-</select>
-```
+# Select agrupado por categoria: Corrida, Força, Complementar.
+# Usar Select do Shadcn com grupos.
+
+const SESSION_GROUPS = [
+  {
+    label: 'Corrida',
+    types: [
+      SessionType.EASY_RUN,
+      SessionType.QUALITY_RUN,
+      SessionType.LONG_RUN,
+      SessionType.PACE_RUN,
+      SessionType.RECOVERY_RUN,
+      SessionType.RACE,
+    ],
+  },
+  {
+    label: 'Força',
+    types: [SessionType.STRENGTH_LOWER, SessionType.STRENGTH_UPPER],
+  },
+  {
+    label: 'Complementar',
+    types: [SessionType.MOBILITY, SessionType.REST],
+  },
+]
+
+export function SessionTypeSelect({
+  value,
+  onChange,
+}: {
+  value: SessionType
+  onChange: (v: SessionType) => void
+}) {
+  return (
+    
+  )
+}
 
 ## FeelingScale
 
-```tsx
-const feelings = [1, 2, 3, 4, 5] as const;
-<div style={{ display: 'flex', gap: 6 }}>
-  {feelings.map((f) => (
-    <button key={f} onClick={() => setFeeling(f as FeelingScale)} style={{
-      flex: 1, height: 44, borderRadius: 10,
-      background: feeling === f ? 'rgba(99,102,241,.25)' : 'rgba(255,255,255,.06)',
-      border: `1px solid ${feeling === f ? 'rgba(99,102,241,.5)' : 'rgba(255,255,255,.08)'}`,
-      color: feeling === f ? 'var(--color-primary-s)' : 'var(--text-muted)',
-      fontSize: 11, fontWeight: feeling === f ? 700 : 500, cursor: 'pointer',
-    }}>
-      {FEELING_LABELS[f as FeelingScale]}
-    </button>
-  ))}
-</div>
-```
+# Escala de sensação 1-5 usada no log de conclusão.
 
-Ver exemplos completos de componentes visuais em skill `paceplan-design` → references/components.md.
+const FEELING_LABELS: Record = {
+  1: 'Péssimo',
+  2: 'Ruim',
+  3: 'Ok',
+  4: 'Bom',
+  5: 'Ótimo',
+}
+
+export function FeelingScale({
+  value,
+  onChange,
+}: {
+  value: FeelingScale | null
+  onChange: (v: FeelingScale) => void
+}) {
+  return (
+    
+
+      {([1, 2, 3, 4, 5] as FeelingScale[]).map(f => (
+         onChange(f)}
+          className={cn(
+            'flex-1 h-11 rounded-xl text-[11px] font-medium transition-colors duration-150',
+            value === f
+              ? 'bg-[--accent] border border-[--primary]/50 text-[--accent-foreground] font-bold'
+              : 'bg-[--surface] border border-[--border] text-[--text-muted] hover:text-[--text-secondary]'
+          )}
+        >
+          {FEELING_LABELS[f]}
+        
+      ))}
+    
+
+  )
+}
+
+## Estados de loading e erro
+
+# Padrão para exibir loading e erro em páginas com TanStack Query.
+
+if (isPending) return (
+  
+
+    
+  
+
+)
+
+if (error) return (
+  
+
+    
+    
+
+{error.message}
+
+
+     refetch()}>
+      Tentar novamente
+    
+  
+
+)
+
+# Ver exemplos visuais completos em references/components.md

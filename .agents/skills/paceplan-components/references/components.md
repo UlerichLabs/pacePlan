@@ -1,223 +1,239 @@
-# Exemplos de componentes — PacePlan
+# Referência de Componentes — paceplan-components
 
-## Card de sessão (barra lateral colorida)
+Exemplos canônicos de uso dos padrões documentados na skill.
+Todos usam Tailwind v4 + Shadcn/ui + TanStack Query.
+Para padrões visuais (glass, cores, ícones) ver paceplan-design.
 
-```tsx
-<div style={{
-  display: 'flex', alignItems: 'center', gap: 12,
-  padding: '12px 14px', marginBottom: 8,
-  borderRadius: 12, border: '1px solid var(--color-border)',
-  background: 'var(--color-surface)',
-}}>
-  <div style={{
-    width: 4, borderRadius: 2, alignSelf: 'stretch',
-    background: getTypeColor(session.type), flexShrink: 0,
-  }} />
-  <div style={{ flex: 1, minWidth: 0 }}>
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>
-        {getTypeLabel(session.type)}
-      </span>
-      <span style={{ fontSize: 11, color: STATUS_COLOR[session.status] }}>
-        {STATUS_LABEL[session.status]}
-      </span>
-    </div>
-    <div style={{ display: 'flex', gap: 10, marginTop: 3 }}>
-      {session.targetDistance != null && (
-        <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-          {formatDistance(session.targetDistance)}
-        </span>
-      )}
-      {session.targetPace && (
-        <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-          {formatPace(session.targetPace)}
-        </span>
-      )}
-    </div>
-  </div>
-</div>
-```
+## SessionCard (barra lateral colorida)
 
-## Input genérico
+# Versão compacta usada em listas fora da WeekPage.
+# Accent bar: 3px, cor do SessionType via SESSION_COLORS.
 
-```tsx
-<input
-  type="text"
-  value={value}
-  onChange={(e) => setValue(e.target.value)}
-  style={{
-    width: '100%', padding: '10px 12px',
-    borderRadius: 8, border: '1px solid var(--color-border)',
-    background: 'var(--color-surface-2)',
-    color: 'var(--color-text)', fontSize: 14,
-    outline: 'none',
-  }}
-/>
-```
+export function SessionCard({ session }: { session: TrainingSession }) {
+  const color = SESSION_COLORS[session.type]
+
+  return (
+    
+
+      
+
+      
+
+        
+
+          
+            {getTypeLabel(session.type)}
+          
+          
+        
+
+        
+
+          {session.targetDistance != null && (
+            
+              {formatDistance(session.targetDistance)}
+            
+          )}
+          {session.targetPace && (
+            
+              {formatPace(session.targetPace)}
+            
+          )}
+        
+
+      
+
+    
+
+  )
+}
 
 ## PaceInput (MM:SS com validação)
 
-```tsx
-function PaceInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const isValid = !value || /^\d{1,2}:\d{2}$/.test(value);
+export function PaceInput({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (v: string) => void
+}) {
+  const isValid = !value || /^\d{1,2}:\d{2}$/.test(value)
+
   return (
-    <input
-      type="text"
-      placeholder="5:30"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      style={{
-        width: '100%', padding: '10px 12px',
-        borderRadius: 8,
-        border: `1px solid ${isValid ? 'var(--color-border)' : 'var(--color-danger)'}`,
-        background: 'var(--color-surface-2)',
-        color: 'var(--color-text)', fontSize: 14, outline: 'none',
-      }}
+     onChange(e.target.value)}
+      className={cn(
+        'input-glass',
+        !isValid && 'border-[--color-danger]/40 focus:border-[--color-danger]/60'
+      )}
     />
-  );
+  )
 }
-```
 
-## SessionTypeSelect
+## SessionTypeSelect (agrupado por categoria)
 
-```tsx
-import { SessionType, SESSION_TYPE_LABELS } from '@paceplan/types';
+const SESSION_GROUPS = [
+  {
+    label: 'Corrida',
+    types: [
+      SessionType.EASY_RUN,
+      SessionType.QUALITY_RUN,
+      SessionType.LONG_RUN,
+      SessionType.PACE_RUN,
+      SessionType.RECOVERY_RUN,
+      SessionType.RACE,
+    ],
+  },
+  {
+    label: 'Força',
+    types: [SessionType.STRENGTH_LOWER, SessionType.STRENGTH_UPPER],
+  },
+  {
+    label: 'Complementar',
+    types: [SessionType.MOBILITY, SessionType.REST],
+  },
+]
 
-<select
-  value={type}
-  onChange={(e) => setType(e.target.value as SessionType)}
-  style={{
-    width: '100%', padding: '10px 12px',
-    borderRadius: 8, border: '1px solid var(--color-border)',
-    background: 'var(--color-surface-2)',
-    color: 'var(--color-text)', fontSize: 14,
-  }}
->
-  {Object.values(SessionType).map((t) => (
-    <option key={t} value={t}>{SESSION_TYPE_LABELS[t]}</option>
-  ))}
-</select>
-```
+export function SessionTypeSelect({
+  value,
+  onChange,
+}: {
+  value: SessionType
+  onChange: (v: SessionType) => void
+}) {
+  return (
+    
+  )
+}
 
 ## FeelingScale (1–5)
 
-```tsx
-import { FEELING_LABELS, type FeelingScale } from '@paceplan/types';
-
-const feelings = [1, 2, 3, 4, 5] as const;
-
-<div style={{ display: 'flex', gap: 6 }}>
-  {feelings.map((f) => (
-    <button
-      key={f}
-      onClick={() => setFeeling(f as FeelingScale)}
-      style={{
-        flex: 1, height: 44, borderRadius: 8,
-        background: feeling === f ? 'var(--color-primary)' : 'var(--color-surface-2)',
-        border: `1px solid ${feeling === f ? 'var(--color-primary)' : 'var(--color-border)'}`,
-        color: 'var(--color-text)',
-        fontSize: 11, fontWeight: feeling === f ? 600 : 400,
-        cursor: 'pointer',
-      }}
-    >
-      {FEELING_LABELS[f as FeelingScale]}
-    </button>
-  ))}
-</div>
-```
-
-## KPI Card (dashboard)
-
-```tsx
-interface KpiCardProps {
-  label: string;
-  value: string;
-  sub?: string;
+const FEELING_LABELS: Record = {
+  1: 'Péssimo',
+  2: 'Ruim',
+  3: 'Ok',
+  4: 'Bom',
+  5: 'Ótimo',
 }
 
-function KpiCard({ label, value, sub }: KpiCardProps) {
+export function FeelingScale({
+  value,
+  onChange,
+}: {
+  value: FeelingScale | null
+  onChange: (v: FeelingScale) => void
+}) {
   return (
-    <div style={{
-      borderRadius: 12, border: '1px solid var(--color-border)',
-      background: 'var(--color-surface)', padding: 16,
-    }}>
-      <p style={{
-        fontSize: 10, fontWeight: 600, letterSpacing: '0.06em',
-        textTransform: 'uppercase', color: 'var(--color-text-hint)', marginBottom: 6,
-      }}>
-        {label}
-      </p>
-      <p style={{ fontSize: 28, fontWeight: 700, color: 'var(--color-text)' }}>
-        {value}
-      </p>
-      {sub && (
-        <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 4 }}>
-          {sub}
-        </p>
-      )}
-    </div>
-  );
+    
+
+      {([1, 2, 3, 4, 5] as FeelingScale[]).map(f => (
+         onChange(f)}
+          className={cn(
+            'flex-1 h-11 rounded-xl text-[11px] transition-colors duration-150',
+            value === f
+              ? 'bg-[--accent] border border-[--primary]/50 text-[--accent-foreground] font-bold'
+              : 'bg-[--surface] border border-[--border] text-[--text-muted] font-medium hover:text-[--text-secondary]'
+          )}
+        >
+          {FEELING_LABELS[f]}
+        
+      ))}
+    
+
+  )
 }
-```
 
-## Badge de status
+## KpiCard (dashboard)
 
-```tsx
-const STATUS_COLOR: Record<string, string> = {
-  planned: 'var(--color-text-hint)',
-  done:    'var(--color-success)',
-  skipped: 'var(--color-danger)',
-};
-const STATUS_LABEL: Record<string, string> = {
+interface KpiCardProps {
+  label: string
+  value: string
+  sub?: string
+  icon?: LucideIcon
+  color?: string
+}
+
+export function KpiCard({ label, value, sub, icon: Icon, color }: KpiCardProps) {
+  return (
+    
+
+      {Icon && (
+        
+      )}
+      
+
+
+        {label}
+      
+
+
+      
+
+
+        {value}
+      
+
+
+      {sub && (
+        
+
+{sub}
+
+
+      )}
+    
+
+  )
+}
+
+## StatusBadge
+
+const statusVariants = cva(
+  'text-[10px] font-semibold px-2.5 py-0.5 rounded-lg border whitespace-nowrap',
+  {
+    variants: {
+      status: {
+        planned: 'bg-[--muted] text-[--text-muted] border-[--border]',
+        done:    'bg-[--color-success]/15 text-[--color-success-fg] border-[--color-success]/20',
+        skipped: 'bg-[--color-danger]/10 text-[--color-danger-fg] border-[--color-danger]/15',
+      },
+    },
+  }
+)
+
+const STATUS_LABELS = {
   planned: 'Planejado',
   done:    'Concluído',
   skipped: 'Pulado',
-};
+}
 
-<span style={{ fontSize: 11, fontWeight: 500, color: STATUS_COLOR[session.status] }}>
-  {STATUS_LABEL[session.status]}
-</span>
-```
+export function StatusBadge({ status }: { status: SessionStatus }) {
+  return (
+    
+      {STATUS_LABELS[status]}
+    
+  )
+}
 
-## VolumeChart — barras SVG inline (sem biblioteca)
+## VolumeChart (SVG puro, sem biblioteca)
 
-```tsx
-function VolumeChart({ weeks }: { weeks: { label: string; km: number; isCurrent: boolean }[] }) {
-  const max = Math.max(...weeks.map((w) => w.km), 1);
-  const BAR_H = 120;
+# Cores via CSS vars — funciona em dark e light sem alteração.
+
+export function VolumeChart({
+  weeks,
+}: {
+  weeks: { label: string; km: number; isCurrent: boolean }[]
+}) {
+  const max = Math.max(...weeks.map(w => w.km), 1)
+  const BAR_H = 120
+  const BAR_W = 44
+  const COL_W = 60
 
   return (
-    <svg width="100%" viewBox={`0 0 ${weeks.length * 60} ${BAR_H + 32}`}>
-      {weeks.map((week, i) => {
-        const barH = (week.km / max) * BAR_H;
-        const x = i * 60 + 8;
-        return (
-          <g key={week.label}>
-            <rect
-              x={x} y={BAR_H - barH} width={44} height={barH}
-              rx={4}
-              fill={week.isCurrent ? 'var(--color-primary)' : 'var(--color-surface-2)'}
-            />
-            <text
-              x={x + 22} y={BAR_H + 16}
-              textAnchor="middle" fontSize={10}
-              fill="var(--color-text-hint)"
-            >
-              {week.label}
-            </text>
-            {week.km > 0 && (
-              <text
-                x={x + 22} y={BAR_H - barH - 4}
-                textAnchor="middle" fontSize={10}
-                fill="var(--color-text-muted)"
-              >
-                {week.km.toFixed(0)}
-              </text>
-            )}
-          </g>
-        );
-      })}
-    </svg>
-  );
+    
+{week.km.toFixed(0)}
+{week.label}
+
+  )
 }
-```
+
+
