@@ -116,6 +116,68 @@ export interface CreatePhasePayload {
   weeklyVolumeTarget?: number | undefined;
 }
 
+export async function getActiveMacrocycleContext(
+  sql: Sql,
+  currentDate: Date
+): Promise<{ macrocycle: Macrocycle; phase: Phase | null } | null> {
+  const rows = await sql`
+    SELECT
+      m.id           AS m_id,
+      m.name         AS m_name,
+      m.goal_distance,
+      m.race_date,
+      m.start_date   AS m_start_date,
+      m.is_active,
+      m.created_at   AS m_created_at,
+      m.updated_at   AS m_updated_at,
+      p.id           AS p_id,
+      p.macrocycle_id,
+      p.name         AS p_name,
+      p.objective,
+      p.start_date   AS p_start_date,
+      p.end_date,
+      p.order_index,
+      p.long_run_target,
+      p.weekly_volume_target
+    FROM macrocycles m
+    LEFT JOIN phases p
+      ON p.macrocycle_id = m.id
+      AND ${currentDate}::date BETWEEN p.start_date AND p.end_date
+    WHERE m.is_active = TRUE
+    LIMIT 1
+  `;
+
+  const row = rows[0] as Record<string, unknown> | undefined;
+  if (!row) return null;
+
+  const macrocycle = rowToMacrocycle({
+    id: row["m_id"],
+    name: row["m_name"],
+    goal_distance: row["goal_distance"],
+    race_date: row["race_date"],
+    start_date: row["m_start_date"],
+    is_active: row["is_active"],
+    created_at: row["m_created_at"],
+    updated_at: row["m_updated_at"],
+  });
+
+  const phase = row["p_id"]
+    ? rowToPhase({
+        id: row["p_id"],
+        macrocycle_id: row["macrocycle_id"],
+        name: row["p_name"],
+        objective: row["objective"],
+        start_date: row["p_start_date"],
+        end_date: row["end_date"],
+        order_index: row["order_index"],
+        long_run_target: row["long_run_target"],
+        weekly_volume_target: row["weekly_volume_target"],
+      })
+    : null;
+
+  return { macrocycle, phase };
+}
+
 export async function createPhase(
   sql: Sql,
   macrocycleId: string,

@@ -15,6 +15,10 @@ export const ERROR_CODES = {
     OVERLAP: "409.020",
     CREATED: "201.002",
   },
+  CONTEXT: {
+    SUCCESS: "200.000",
+    NO_CURRENT_PHASE: "200.010",
+  },
 } as const;
 
 export const ERROR_MESSAGES = {
