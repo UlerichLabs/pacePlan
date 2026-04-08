@@ -174,6 +174,15 @@ export interface CreatePhasePayload {
   weeklyVolumeTarget?: number | undefined;
 }
 
+export interface UpdatePhasePayload {
+  name?: string | undefined;
+  objective?: string | undefined;
+  startDate?: string | undefined;
+  endDate?: string | undefined;
+  longRunTarget?: number | null | undefined;
+  weeklyVolumeTarget?: number | null | undefined;
+}
+
 // ─── API Response Wrappers ────────────────────────────────────────────────────
 
 export interface ApiSuccess<T> {

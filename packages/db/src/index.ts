@@ -23,4 +23,4 @@ export {
 
 export type { CreateMacrocyclePayload } from "./queries/macrocycles.js";
 
-export { insertPhase, checkPhaseOverlap } from "./queries/phaseQueries.js";
+export { insertPhase, checkPhaseOverlap, findPhaseByIdAndMacrocycle, updatePhase } from "./queries/phaseQueries.js";
