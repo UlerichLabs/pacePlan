@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Heart, ScrollText } from 'lucide-react';
 import type { TrainingSession } from '@paceplan/types';
 import { FEELING_LABELS } from '@paceplan/types';
+import { cn } from '@/lib/utils';
 import { useSessions } from '../hooks/useSessions';
 import {
   SESSION_ICONS,
@@ -39,15 +40,19 @@ function applyFilter(sessions: TrainingSession[], filter: FilterKey): TrainingSe
 
 function FeelingDots({ feeling }: { feeling: 1 | 2 | 3 | 4 | 5 }) {
   return (
-    <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+    <div className="flex gap-[3px] items-center">
       {([1, 2, 3, 4, 5] as const).map(f => (
-        <div key={f} style={{
-          width: 8, height: 8, borderRadius: '50%',
-          background: f <= feeling ? 'var(--color-primary)' : 'rgba(255,255,255,.10)',
-          border: f <= feeling ? 'none' : '1px solid rgba(255,255,255,.14)',
-        }} />
+        <div
+          key={f}
+          className={cn(
+            'w-2 h-2 rounded-full',
+            f <= feeling
+              ? 'bg-primary'
+              : 'bg-[--border] border border-[--border-subtle]'
+          )}
+        />
       ))}
-      <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 4 }}>
+      <span className="text-[10px] text-[--text-muted] ml-1">
         {FEELING_LABELS[feeling]}
       </span>
     </div>
@@ -63,53 +68,41 @@ function SessionHistoryCard({ session, onClick }: { session: TrainingSession; on
   return (
     <button
       onClick={onClick}
-      style={{
-        width: '100%', textAlign: 'left',
-        borderRadius: 14, marginBottom: 8,
-        background: 'rgba(255,255,255,0.065)',
-        border: '1px solid rgba(255,255,255,0.10)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        overflow: 'hidden', cursor: 'pointer',
-        display: 'flex', position: 'relative',
-      }}
+      style={{ '--session-color': color } as React.CSSProperties}
+      className="w-full text-left rounded-card mb-2 glass overflow-hidden cursor-pointer flex relative hover:bg-surface/50 transition-colors"
     >
-      <div style={{ width: 3, background: color, flexShrink: 0, alignSelf: 'stretch', borderRadius: '3px 0 0 3px' }} />
+      <div className="session-accent-bar bg-[--session-color]" />
 
-      <div style={{ flex: 1, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-          background: `${color}1a`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
+      <div className="flex-1 px-3.5 py-3 flex items-center gap-3 min-w-0">
+        <div className="w-9 h-9 rounded-[10px] shrink-0 flex items-center justify-center bg-[--session-color]/10">
           <Icon size={17} color={color} />
         </div>
 
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
+        <div className="flex-1 min-w-0">
+          <div className="text-[13px] font-semibold text-foreground mb-0.5">
             {getTypeLabel(session.type)}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+          <div className="text-[11px] text-[--text-muted] mb-1.5">
             {formatDate(session.date)}
           </div>
           {log != null && <FeelingDots feeling={log.feeling} />}
         </div>
 
         {isRun && log != null && (
-          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          <div className="text-right shrink-0">
             {log.actualDistance != null && (
-              <div style={{ fontSize: 15, fontWeight: 700, color, letterSpacing: '-.01em', marginBottom: 2 }}>
+              <div className="text-[15px] font-bold tracking-tight mb-0.5 text-[--session-color]">
                 {formatDistance(log.actualDistance)}
               </div>
             )}
             {log.actualPace != null && (
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>
+              <div className="text-[11px] text-[--text-muted] mb-0.5">
                 {formatPace(log.actualPace)}
               </div>
             )}
             {log.heartRateAvg != null && (
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'flex-end' }}>
-                <Heart size={10} color="var(--text-muted)" />
+              <div className="text-[11px] text-[--text-muted] flex items-center gap-[3px] justify-end">
+                <Heart size={10} className="text-[--text-muted]" />
                 {log.heartRateAvg} bpm
               </div>
             )}
@@ -139,63 +132,47 @@ export function HistoryPage() {
 
   const visible = applyFilter(doneSessions, filter);
 
-  function pillStyle(active: boolean): React.CSSProperties {
-    return {
-      padding: '7px 16px', borderRadius: 20,
-      background: active ? 'rgba(255,255,255,0.10)' : 'transparent',
-      border: `1px solid ${active ? 'rgba(99,102,241,.50)' : 'rgba(255,255,255,.08)'}`,
-      color: active ? '#a5b4fc' : 'var(--text-muted)',
-      fontSize: 12, fontWeight: active ? 600 : 500,
-      cursor: 'pointer', transition: 'all .15s',
-      backdropFilter: active ? 'blur(40px)' : 'none',
-      WebkitBackdropFilter: active ? 'blur(40px)' : 'none',
-    };
-  }
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <header style={{
-        display: 'flex', alignItems: 'center',
-        padding: '14px 16px',
-        borderBottom: '1px solid rgba(255,255,255,.08)',
-        background: 'rgba(255,255,255,.06)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        flexShrink: 0,
-      }}>
-        <h1 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-primary)' }}>
+    <div className="flex flex-col h-full">
+      <header className="page-header">
+        <h1 className="text-[17px] font-semibold text-foreground">
           {PAGE_TITLE}
         </h1>
       </header>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 32px' }}>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-8">
+        <div className="flex gap-2 mb-5">
           {FILTER_OPTIONS.map(({ key, label }) => (
-            <button key={key} onClick={() => setFilter(key)} style={pillStyle(filter === key)}>
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={cn(
+                'px-4 py-[7px] rounded-full text-xs transition-all duration-150',
+                filter === key
+                  ? 'bg-surface border border-primary/50 text-primary-subtle font-semibold backdrop-blur-[40px]'
+                  : 'border border-[--border-subtle] text-[--text-muted] font-medium hover:bg-surface'
+              )}
+            >
               {label}
             </button>
           ))}
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', paddingTop: 60, color: 'var(--text-muted)', fontSize: 14 }}>
+          <div className="text-center pt-[60px] text-[--text-muted] text-sm">
             {LABEL_CARREGANDO}
           </div>
         ) : error != null ? (
-          <div style={{
-            padding: '12px 14px', borderRadius: 10,
-            background: 'rgba(239,68,68,.10)', border: '1px solid rgba(239,68,68,.20)',
-            color: '#f87171', fontSize: 13,
-          }}>
+          <div className="error-box">
             {error}
           </div>
         ) : visible.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 80, gap: 12 }}>
-            <ScrollText size={32} color="var(--text-muted)" />
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'center' }}>
+          <div className="flex flex-col items-center justify-center pt-20 gap-3">
+            <ScrollText size={32} className="text-[--text-muted]" />
+            <div className="text-sm font-semibold text-[--text-secondary] text-center">
               {EMPTY_TITLE}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', maxWidth: 240, lineHeight: 1.5 }}>
+            <div className="text-xs text-[--text-muted] text-center max-w-[240px] leading-relaxed">
               {EMPTY_SUBTITLE}
             </div>
           </div>

@@ -1,6 +1,7 @@
-import { type CSSProperties, type FormEvent, useState } from 'react';
+import { type FormEvent, useState } from 'react';
 import { ChevronLeft, Target, AlertCircle, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import { macrocycleService } from '../services/macrocycleService';
 
 const TITLE = 'Novo Projeto de Treino';
@@ -12,32 +13,6 @@ const LABEL_CRIAR = 'Criar projeto';
 const LABEL_CRIANDO = 'Criando...';
 const PLACEHOLDER_NOME = 'Meia Maratona — Novembro 2026';
 const MSG_SEMANAS = (n: number) => `Duração estimada: ${n} semana${n !== 1 ? 's' : ''}`;
-
-const inputStyle: CSSProperties = {
-  width: '100%',
-  padding: '11px 14px',
-  borderRadius: 10,
-  background: 'rgba(255,255,255,.06)',
-  border: '1px solid rgba(255,255,255,.10)',
-  color: 'var(--text-primary)',
-  fontSize: 14,
-  outline: 'none',
-  backdropFilter: 'blur(12px)',
-  WebkitBackdropFilter: 'blur(12px)',
-  transition: 'border-color .15s',
-  boxSizing: 'border-box',
-};
-
-const labelStyle: CSSProperties = {
-  fontSize: 10,
-  fontWeight: 600,
-  letterSpacing: '.08em',
-  textTransform: 'uppercase',
-  color: 'var(--text-hint)',
-  marginBottom: 6,
-  marginTop: 20,
-  display: 'block',
-};
 
 function countWeeks(start: string, end: string): number {
   const s = new Date(`${start}T00:00:00`);
@@ -87,61 +62,42 @@ export function NewMacrocyclePage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <header style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: '14px 16px',
-        borderBottom: '1px solid rgba(255,255,255,.08)',
-        background: 'rgba(255,255,255,.06)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        flexShrink: 0,
-      }}>
+    <div className="flex flex-col h-full">
+      <header className="page-header gap-3">
         <button
           onClick={() => navigate(-1)}
-          style={{ color: 'var(--text-muted)', display: 'flex', padding: 4, background: 'none', border: 'none', cursor: 'pointer' }}
+          className="flex p-1 text-[--text-muted] hover:text-foreground transition-colors"
         >
           <ChevronLeft size={22} />
         </button>
-        <Target size={17} color="#a5b4fc" />
-        <h1 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+        <Target size={17} className="text-primary-subtle" />
+        <h1 className="text-[17px] font-semibold text-foreground">
           {TITLE}
         </h1>
       </header>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 48px' }}>
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-12">
         {conflictError != null && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 10,
-            marginBottom: 20,
-            padding: '14px 16px',
-            borderRadius: 12,
-            background: 'rgba(239,68,68,.10)',
-            border: '1px solid rgba(239,68,68,.25)',
-          }}>
-            <AlertCircle size={16} color="#f87171" style={{ flexShrink: 0, marginTop: 1 }} />
-            <span style={{ fontSize: 13, color: '#f87171', lineHeight: '1.5' }}>
+          <div className="flex items-start gap-2.5 mb-5 px-4 py-3.5 rounded-xl bg-destructive/10 border border-destructive/25">
+            <AlertCircle size={16} className="text-destructive shrink-0 mt-px" />
+            <span className="text-[13px] text-destructive leading-relaxed">
               {conflictError}
             </span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={labelStyle}>{LABEL_NOME}</span>
+        <form onSubmit={handleSubmit} className="flex flex-col">
+          <span className="section-label">{LABEL_NOME}</span>
           <input
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder={PLACEHOLDER_NOME}
             required
-            style={inputStyle}
+            className="input-glass"
           />
 
-          <span style={labelStyle}>{LABEL_DISTANCIA}</span>
+          <span className="section-label">{LABEL_DISTANCIA}</span>
           <input
             type="number"
             value={goalDistance}
@@ -150,80 +106,49 @@ export function NewMacrocyclePage() {
             step="0.1"
             placeholder="21.1"
             required
-            style={inputStyle}
+            className="input-glass"
           />
 
-          <span style={labelStyle}>{LABEL_DATA_INICIO}</span>
+          <span className="section-label">{LABEL_DATA_INICIO}</span>
           <input
             type="date"
             value={startDate}
             onChange={e => setStartDate(e.target.value)}
             required
-            style={{ ...inputStyle, colorScheme: 'dark' }}
+            className="input-glass"
           />
 
-          <span style={labelStyle}>{LABEL_DATA_PROVA}</span>
+          <span className="section-label">{LABEL_DATA_PROVA}</span>
           <input
             type="date"
             value={raceDate}
             onChange={e => setRaceDate(e.target.value)}
             required
-            style={{ ...inputStyle, colorScheme: 'dark' }}
+            className="input-glass"
           />
 
           {weeksCount != null && (
-            <div style={{
-              marginTop: 14,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '10px 14px',
-              borderRadius: 10,
-              background: 'rgba(99,102,241,.10)',
-              border: '1px solid rgba(99,102,241,.20)',
-            }}>
-              <Calendar size={13} color="#a5b4fc" />
-              <span style={{ fontSize: 12, color: '#a5b4fc', fontWeight: 500 }}>
+            <div className="mt-3.5 flex items-center gap-2 px-3.5 py-2.5 rounded-md bg-accent border border-primary/20">
+              <Calendar size={13} className="text-primary-subtle" />
+              <span className="text-xs text-primary-subtle font-medium">
                 {MSG_SEMANAS(weeksCount)}
               </span>
             </div>
           )}
 
           {fieldError != null && (
-            <div style={{
-              marginTop: 14,
-              padding: '10px 14px',
-              borderRadius: 10,
-              background: 'rgba(239,68,68,.10)',
-              border: '1px solid rgba(239,68,68,.20)',
-              color: '#f87171',
-              fontSize: 13,
-            }}>
+            <div className="error-box mt-3.5">
               {fieldError}
             </div>
           )}
 
-          <button
+          <Button
             type="submit"
             disabled={submitting}
-            style={{
-              marginTop: 28,
-              width: '100%',
-              padding: '13px',
-              borderRadius: 12,
-              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-              color: '#fff',
-              fontSize: 15,
-              fontWeight: 600,
-              border: 'none',
-              cursor: submitting ? 'not-allowed' : 'pointer',
-              boxShadow: '0 4px 20px rgba(99,102,241,.35)',
-              opacity: submitting ? 0.6 : 1,
-              transition: 'opacity .15s',
-            }}
+            className="mt-7 w-full h-auto py-3.5 text-base rounded-xl bg-gradient-to-br from-primary to-violet shadow-primary-glow disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {submitting ? LABEL_CRIANDO : LABEL_CRIAR}
-          </button>
+          </Button>
         </form>
       </div>
     </div>

@@ -34,44 +34,29 @@ export function SessionTypeSelect({ value, onChange }: SessionTypeSelectProps) {
     onChange(e.target.value as SessionType);
   }
 
-  const optStyle = { background: '#1a1d27' };
-
   return (
     <select
       value={value}
       onChange={handleChange}
-      style={{
-        width: '100%',
-        padding: '11px 14px',
-        borderRadius: 10,
-        background: 'rgba(255,255,255,.06)',
-        border: '1px solid rgba(255,255,255,.10)',
-        color: 'var(--text-primary)',
-        fontSize: 14,
-        appearance: 'none',
-        cursor: 'pointer',
-        outline: 'none',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-      }}
+      className="input-glass appearance-none cursor-pointer"
     >
-      <optgroup label={LABEL_GROUP_CORRIDA} style={optStyle}>
+      <optgroup label={LABEL_GROUP_CORRIDA} className="bg-popover">
         {RUNNING_TYPES.map((t) => (
-          <option key={t} value={t} style={optStyle}>
+          <option key={t} value={t} className="bg-popover">
             {SESSION_TYPE_LABELS[t]}
           </option>
         ))}
       </optgroup>
-      <optgroup label={LABEL_GROUP_FORCA} style={optStyle}>
+      <optgroup label={LABEL_GROUP_FORCA} className="bg-popover">
         {STRENGTH_TYPES.map((t) => (
-          <option key={t} value={t} style={optStyle}>
+          <option key={t} value={t} className="bg-popover">
             {SESSION_TYPE_LABELS[t]}
           </option>
         ))}
       </optgroup>
-      <optgroup label={LABEL_GROUP_COMPLEMENTAR} style={optStyle}>
+      <optgroup label={LABEL_GROUP_COMPLEMENTAR} className="bg-popover">
         {COMPLEMENTAR_TYPES.map((t) => (
-          <option key={t} value={t} style={optStyle}>
+          <option key={t} value={t} className="bg-popover">
             {SESSION_TYPE_LABELS[t]}
           </option>
         ))}

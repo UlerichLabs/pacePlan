@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Activity, CalendarDays, ScrollText, Target } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
   { to: '/week',       label: 'Semana',    Icon: CalendarDays },
@@ -12,8 +13,8 @@ const NAV_ITEMS = [
 function SidebarContent() {
   return (
     <>
-      <div style={{ marginBottom: 32, paddingLeft: 12 }}>
-        <span style={{ fontSize: 16, fontWeight: 700, color: '#a5b4fc', letterSpacing: '-.01em' }}>
+      <div className="mb-8 pl-3">
+        <span className="text-base font-bold text-primary-subtle tracking-tight">
           PacePlan
         </span>
       </div>
@@ -21,14 +22,12 @@ function SidebarContent() {
         <NavLink
           key={item.to}
           to={item.to}
-          style={({ isActive }) => ({
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '10px 12px', borderRadius: 10, marginBottom: 2,
-            color: isActive ? '#a5b4fc' : 'rgba(255,255,255,.4)',
-            background: isActive ? 'rgba(99,102,241,.12)' : 'transparent',
-            fontSize: 14, fontWeight: isActive ? 600 : 500,
-            transition: 'all .15s',
-          })}
+          className={({ isActive }) => cn(
+            'flex items-center gap-2.5 px-3 py-2.5 rounded-md mb-0.5 text-sm transition-all duration-150',
+            isActive
+              ? 'text-primary-subtle bg-accent font-semibold'
+              : 'text-[--text-secondary] font-medium hover:bg-surface'
+          )}
         >
           <item.Icon size={17} />
           {item.label}
@@ -45,14 +44,10 @@ function BottomNavContent() {
         <NavLink
           key={item.to}
           to={item.to}
-          style={({ isActive }) => ({
-            flex: 1, display: 'flex', flexDirection: 'column',
-            alignItems: 'center', gap: 4,
-            fontSize: 10, fontWeight: 600, letterSpacing: '.04em',
-            textTransform: 'uppercase' as const,
-            color: isActive ? '#a5b4fc' : 'rgba(255,255,255,.28)',
-            transition: 'color .15s',
-          })}
+          className={({ isActive }) => cn(
+            'flex-1 flex flex-col items-center gap-1 text-[10px] font-semibold tracking-wider uppercase transition-colors duration-150',
+            isActive ? 'text-primary-subtle' : 'text-[--text-hint]'
+          )}
         >
           <item.Icon size={20} />
           {item.label}
@@ -64,23 +59,16 @@ function BottomNavContent() {
 
 export function Layout({ children }: { children: ReactNode }) {
   return (
-    <div style={{ position: 'relative', height: '100dvh', overflow: 'hidden', background: '#0f1117' }}>
-      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
-        <div style={{ position: 'absolute', width: 350, height: 350, borderRadius: '50%', background: '#6366f1', filter: 'blur(90px)', opacity: .16, top: -100, left: -80 }} />
-        <div style={{ position: 'absolute', width: 280, height: 280, borderRadius: '50%', background: '#8b5cf6', filter: 'blur(90px)', opacity: .14, bottom: 80, right: -60 }} />
-        <div style={{ position: 'absolute', width: 220, height: 220, borderRadius: '50%', background: '#22c55e', filter: 'blur(80px)', opacity: .08, top: '40%', right: '20%' }} />
-      </div>
-      <div className="app-shell" style={{ position: 'relative', zIndex: 1 }}>
-        <nav className="sidebar">
-          <SidebarContent />
-        </nav>
-        <main className="main-content">
-          {children}
-        </main>
-        <nav className="bottom-nav">
-          <BottomNavContent />
-        </nav>
-      </div>
+    <div className="app-shell app-bg">
+      <nav className="sidebar">
+        <SidebarContent />
+      </nav>
+      <main className="main-content">
+        {children}
+      </main>
+      <nav className="bottom-nav">
+        <BottomNavContent />
+      </nav>
     </div>
   );
 }

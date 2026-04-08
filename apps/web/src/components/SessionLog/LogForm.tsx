@@ -1,6 +1,7 @@
-import { type CSSProperties, type FormEvent, useState } from 'react';
+import { type FormEvent, useState } from 'react';
 import type { FeelingScale, LogSessionPayload, TrainingSession } from '@paceplan/types';
 import { SessionType } from '@paceplan/types';
+import { Button } from '@/components/ui/button';
 import { isRunningSession } from '../../services/sessionUtils';
 import { sessionService } from '../../services/sessionService';
 import { PaceInput } from '../SessionForm/PaceInput';
@@ -98,110 +99,80 @@ export function LogForm({
     }
   }
 
-  const sectionLabel: CSSProperties = {
-    fontSize: 10, fontWeight: 600, letterSpacing: '.08em',
-    textTransform: 'uppercase', color: 'var(--text-hint)',
-    marginBottom: 8, marginTop: 20, display: 'block',
-  };
-
-  const inputStyle: CSSProperties = {
-    width: '100%', padding: '11px 14px', borderRadius: 10,
-    background: 'rgba(255,255,255,.06)',
-    border: '1px solid rgba(255,255,255,.10)',
-    color: 'var(--text-primary)', fontSize: 14, outline: 'none',
-    backdropFilter: 'blur(12px)',
-    WebkitBackdropFilter: 'blur(12px)',
-    transition: 'border-color .15s',
-  };
-
-  const errorText: CSSProperties = { fontSize: 11, color: '#f87171', marginTop: 4 };
-
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column' }}>
+    <form onSubmit={handleSubmit} className="flex flex-col">
       {serverError != null && (
-        <div style={{
-          marginBottom: 12, padding: '10px 14px', borderRadius: 10,
-          background: 'rgba(239,68,68,.10)', border: '1px solid rgba(239,68,68,.20)',
-          color: '#f87171', fontSize: 13,
-        }}>
+        <div className="error-box mb-3">
           {serverError}
         </div>
       )}
 
       {isRunning && (
         <>
-          <span style={sectionLabel}>{LABEL_DISTANCIA}</span>
+          <span className="section-label">{LABEL_DISTANCIA}</span>
           <input
             type="number" value={distanceInput}
             onChange={(e) => setDistanceInput(e.target.value)}
             min="0" step="0.1" placeholder="0.0"
-            style={inputStyle}
+            className="input-glass"
           />
-          {errors.distance != null && <span style={errorText}>{errors.distance}</span>}
+          {errors.distance != null && <span className="text-[11px] text-destructive mt-1">{errors.distance}</span>}
 
-          <span style={sectionLabel}>{LABEL_PACE}</span>
+          <span className="section-label">{LABEL_PACE}</span>
           <PaceInput value={pace} onChange={setPace} />
-          {errors.pace != null && <span style={errorText}>{errors.pace}</span>}
+          {errors.pace != null && <span className="text-[11px] text-destructive mt-1">{errors.pace}</span>}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <span style={sectionLabel}>{LABEL_BPM_AVG}</span>
+              <span className="section-label">{LABEL_BPM_AVG}</span>
               <input
                 type="number" value={bpmAvg}
                 onChange={(e) => setBpmAvg(e.target.value)}
                 min="0" step="1" placeholder="—"
-                style={inputStyle}
+                className="input-glass"
               />
             </div>
             <div>
-              <span style={sectionLabel}>{LABEL_BPM_MAX}</span>
+              <span className="section-label">{LABEL_BPM_MAX}</span>
               <input
                 type="number" value={bpmMax}
                 onChange={(e) => setBpmMax(e.target.value)}
                 min="0" step="1" placeholder="—"
-                style={inputStyle}
+                className="input-glass"
               />
             </div>
           </div>
         </>
       )}
 
-      <span style={sectionLabel}>{LABEL_SENSACAO}</span>
+      <span className="section-label">{LABEL_SENSACAO}</span>
       <FeelingScalePicker value={feeling} onChange={setFeeling} />
-      {errors.feeling != null && <span style={errorText}>{errors.feeling}</span>}
+      {errors.feeling != null && <span className="text-[11px] text-destructive mt-1">{errors.feeling}</span>}
 
-      <span style={sectionLabel}>{LABEL_NOTAS}</span>
+      <span className="section-label">{LABEL_NOTAS}</span>
       <textarea
         value={notes} onChange={(e) => setNotes(e.target.value)}
         rows={3} placeholder={PLACEHOLDER_NOTAS}
-        style={{ ...inputStyle, resize: 'vertical' as const, lineHeight: '1.5' }}
+        className="input-glass resize-y leading-relaxed"
       />
 
-      <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <button
-          type="submit" disabled={isLoading}
-          style={{
-            width: '100%', padding: '13px', borderRadius: 12,
-            background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-            color: '#fff', fontSize: 15, fontWeight: 600,
-            border: 'none', cursor: isLoading ? 'not-allowed' : 'pointer',
-            boxShadow: '0 4px 20px rgba(34,197,94,.25)',
-            opacity: isLoading ? .6 : 1, transition: 'opacity .15s',
-          }}
+      <div className="mt-6 flex flex-col gap-2.5">
+        <Button
+          type="submit"
+          disabled={isLoading}
+          className="w-full h-auto py-3.5 text-base rounded-xl bg-gradient-to-br from-success to-success-fg text-white shadow-success-glow disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {isLoading ? BTN_CONFIRMANDO : BTN_CONFIRMAR}
-        </button>
-        <button
-          type="button" onClick={onCancel} disabled={isLoading}
-          style={{
-            width: '100%', padding: '12px', borderRadius: 12,
-            background: 'transparent', color: 'var(--text-muted)', fontSize: 14,
-            border: '1px solid rgba(255,255,255,.08)',
-            cursor: isLoading ? 'not-allowed' : 'pointer',
-          }}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isLoading}
+          className="w-full h-auto py-3 text-sm rounded-xl disabled:cursor-not-allowed"
         >
           {BTN_CANCELAR}
-        </button>
+        </Button>
       </div>
     </form>
   );

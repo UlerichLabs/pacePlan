@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   CheckCircle2,
@@ -9,6 +9,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import type { TrainingSession } from '@paceplan/types';
+import { Button } from '@/components/ui/button';
 import { LogForm } from '../components/SessionLog/LogForm';
 import { sessionService } from '../services/sessionService';
 import {
@@ -49,29 +50,9 @@ const MSG_LOADING = 'Carregando...';
 const MSG_NOT_FOUND = 'Sessão não encontrada';
 
 const STATUS_CONFIG = {
-  planned: { label: 'Planejado', bg: 'rgba(255,255,255,.07)',  color: 'var(--text-muted)', border: 'rgba(255,255,255,.1)'  },
-  done:    { label: 'Concluído', bg: 'rgba(34,197,94,.14)',    color: '#4ade80',            border: 'rgba(34,197,94,.2)'   },
-  skipped: { label: 'Pulado',    bg: 'rgba(239,68,68,.12)',    color: '#f87171',            border: 'rgba(239,68,68,.15)'  },
-};
-
-
-
-const headerStyle: CSSProperties = {
-  display: 'flex', alignItems: 'center', gap: 12,
-  padding: '14px 16px',
-  borderBottom: '1px solid rgba(255,255,255,.08)',
-  background: 'rgba(255,255,255,.06)',
-  backdropFilter: 'blur(24px)',
-  WebkitBackdropFilter: 'blur(24px)',
-  flexShrink: 0,
-};
-
-const glassCard: CSSProperties = {
-  borderRadius: 14, overflow: 'hidden',
-  background: 'var(--glass-bg)',
-  border: '1px solid var(--glass-border)',
-  backdropFilter: 'blur(24px)',
-  WebkitBackdropFilter: 'blur(24px)',
+  planned: { label: 'Planejado', variant: 'planned' as const },
+  done:    { label: 'Concluído', variant: 'done'    as const },
+  skipped: { label: 'Pulado',    variant: 'skipped' as const },
 };
 
 export function SessionDetailPage() {
@@ -150,15 +131,15 @@ export function SessionDetailPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <header style={headerStyle}>
-          <button onClick={() => navigate(-1)} style={{ color: 'var(--text-muted)', display: 'flex', padding: 4 }}>
+      <div className="flex flex-col h-full">
+        <header className="page-header gap-3">
+          <button onClick={() => navigate(-1)} className="flex p-1 text-[--text-muted]">
             <ChevronLeft size={22} />
           </button>
-          <h1 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-primary)' }}>{PAGE_TITLE}</h1>
+          <h1 className="text-[17px] font-semibold text-foreground">{PAGE_TITLE}</h1>
         </header>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ color: 'var(--text-muted)', fontSize: 14 }}>{MSG_LOADING}</span>
+        <div className="flex-1 flex items-center justify-center">
+          <span className="text-[--text-muted] text-sm">{MSG_LOADING}</span>
         </div>
       </div>
     );
@@ -166,15 +147,15 @@ export function SessionDetailPage() {
 
   if (fetchError != null || session == null) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <header style={headerStyle}>
-          <button onClick={() => navigate(-1)} style={{ color: 'var(--text-muted)', display: 'flex', padding: 4 }}>
+      <div className="flex flex-col h-full">
+        <header className="page-header gap-3">
+          <button onClick={() => navigate(-1)} className="flex p-1 text-[--text-muted]">
             <ChevronLeft size={22} />
           </button>
-          <h1 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-primary)' }}>{PAGE_TITLE}</h1>
+          <h1 className="text-[17px] font-semibold text-foreground">{PAGE_TITLE}</h1>
         </header>
-        <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
-          <p style={{ color: '#f87171', fontSize: 14 }}>{fetchError ?? MSG_NOT_FOUND}</p>
+        <div className="flex-1 overflow-y-auto p-4">
+          <p className="text-destructive text-sm">{fetchError ?? MSG_NOT_FOUND}</p>
         </div>
       </div>
     );
@@ -186,41 +167,35 @@ export function SessionDetailPage() {
   const withDist = isRunningSession(session.type);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <header style={headerStyle}>
-        <button onClick={() => navigate(-1)} style={{ color: 'var(--text-muted)', display: 'flex', padding: 4 }}>
+    <div className="flex flex-col h-full">
+      <header className="page-header gap-3">
+        <button onClick={() => navigate(-1)} className="flex p-1 text-[--text-muted]">
           <ChevronLeft size={22} />
         </button>
-        <h1 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-primary)' }}>
+        <h1 className="text-[17px] font-semibold text-foreground flex-1">
           {getTypeLabel(session.type)}
         </h1>
         <StatusBadge statusCfg={statusCfg} />
       </header>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: 16, paddingBottom: 32 }}>
+      <div className="flex-1 overflow-y-auto p-4 pb-8">
 
         <SectionLabel text={SECTION_PLANO} />
 
-        <div style={glassCard}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            padding: '14px 14px 14px 18px',
-            position: 'relative',
-            borderBottom: '1px solid rgba(255,255,255,.05)',
-          }}>
-            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: color, borderRadius: '3px 0 0 3px' }} />
-            <div style={{
-              width: 40, height: 40, borderRadius: 11,
-              background: `${color}1a`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}>
+        <div className="glass rounded-card overflow-hidden">
+          <div
+            className="flex items-center gap-3 px-[14px] py-[14px] pl-[18px] relative border-b border-[--border-subtle]"
+            style={{ '--session-color': color } as React.CSSProperties}
+          >
+            <div className="session-accent-bar bg-[--session-color]" />
+            <div className="w-10 h-10 rounded-[11px] flex items-center justify-center shrink-0 bg-[--session-color]/10">
               <Icon size={20} color={color} />
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>
+            <div className="flex-1 min-w-0">
+              <div className="text-[15px] font-bold text-foreground mb-0.5">
                 {getTypeLabel(session.type)}
               </div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              <div className="text-xs text-[--text-muted]">
                 {formatDate(session.date)}
               </div>
             </div>
@@ -229,7 +204,7 @@ export function SessionDetailPage() {
             )}
           </div>
 
-          <div style={{ padding: '0 14px 4px' }}>
+          <div className="px-3.5 pb-1">
             <MetaRow label={LABEL_DATA} value={formatDate(session.date)} />
             {withDist && session.targetDistance != null && (
               <MetaRow label={LABEL_DISTANCIA_ALVO} value={formatDistance(session.targetDistance)} />
@@ -238,20 +213,17 @@ export function SessionDetailPage() {
               <MetaRow label={LABEL_PACE_ALVO} value={formatPace(session.targetPace)} />
             )}
             {session.environment != null && (
-              <div style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,.05)',
-              }}>
-                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{LABEL_AMBIENTE}</span>
+              <div className="flex justify-between items-center py-2.5 border-b border-[--border-subtle]">
+                <span className="text-sm text-[--text-muted]">{LABEL_AMBIENTE}</span>
                 <EnvironmentBadge env={session.environment} />
               </div>
             )}
             {session.notes != null && session.notes !== '' && (
-              <div style={{ padding: '10px 0' }}>
-                <span style={{ fontSize: 11, color: 'var(--text-hint)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600 }}>
+              <div className="py-2.5">
+                <span className="text-[11px] text-[--text-hint] uppercase tracking-[.06em] font-semibold">
                   {LABEL_NOTAS}
                 </span>
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.5 }}>
+                <p className="text-sm text-[--text-secondary] mt-1 leading-relaxed">
                   {session.notes}
                 </p>
               </div>
@@ -278,104 +250,63 @@ export function SessionDetailPage() {
         )}
 
         {!showLogForm && (
-          <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="mt-7 flex flex-col gap-2.5">
             {actionError != null && (
-              <div style={{
-                padding: '10px 14px', borderRadius: 10,
-                background: 'rgba(239,68,68,.10)', border: '1px solid rgba(239,68,68,.20)',
-                color: '#f87171', fontSize: 13,
-              }}>
+              <div className="error-box">
                 {actionError}
               </div>
             )}
 
             {session.status === 'planned' && (
               <>
-                <button
+                <Button
                   onClick={() => setShowLogForm(true)}
                   disabled={actionLoading}
-                  style={{
-                    width: '100%', padding: '13px', borderRadius: 12,
-                    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                    color: '#fff', fontSize: 15, fontWeight: 600,
-                    border: 'none', cursor: actionLoading ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 4px 20px rgba(34,197,94,.25)',
-                    opacity: actionLoading ? .6 : 1,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  }}
+                  className="w-full h-auto py-3.5 text-base rounded-xl bg-gradient-to-br from-success to-success-fg text-white shadow-success-glow disabled:opacity-60 gap-2"
                 >
                   <CheckCircle2 size={17} />
                   {BTN_CONCLUIR}
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => { void handleSkip(); }}
                   disabled={actionLoading}
-                  style={{
-                    width: '100%', padding: '12px', borderRadius: 12,
-                    background: 'rgba(234,179,8,.08)',
-                    color: '#fbbf24', fontSize: 14, fontWeight: 500,
-                    border: '1px solid rgba(234,179,8,.18)',
-                    cursor: actionLoading ? 'not-allowed' : 'pointer',
-                    opacity: actionLoading ? .6 : 1,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  }}
+                  className="w-full h-auto py-3 text-sm rounded-xl bg-warning-fg/8 text-warning-fg border border-warning-fg/18 disabled:opacity-60 gap-2"
                 >
                   <SkipForward size={15} />
                   {BTN_PULAR}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="outline"
                   onClick={() => navigate(`/sessions/${session.id}/edit`)}
                   disabled={actionLoading}
-                  style={{
-                    width: '100%', padding: '12px', borderRadius: 12,
-                    background: 'transparent',
-                    color: 'var(--text-secondary)', fontSize: 14,
-                    border: '1px solid rgba(255,255,255,.10)',
-                    cursor: actionLoading ? 'not-allowed' : 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  }}
+                  className="w-full h-auto py-3 text-sm rounded-xl disabled:opacity-60 gap-2"
                 >
                   <Pencil size={15} />
                   {BTN_EDITAR}
-                </button>
+                </Button>
               </>
             )}
 
             {session.status === 'skipped' && (
-              <button
+              <Button
                 onClick={() => { void handleReactivate(); }}
                 disabled={actionLoading}
-                style={{
-                  width: '100%', padding: '13px', borderRadius: 12,
-                  background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                  color: '#fff', fontSize: 15, fontWeight: 600,
-                  border: 'none', cursor: actionLoading ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 4px 20px rgba(99,102,241,.3)',
-                  opacity: actionLoading ? .6 : 1,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                }}
+                className="w-full h-auto py-3.5 text-base rounded-xl bg-gradient-to-br from-primary to-violet shadow-primary-glow disabled:opacity-60 gap-2"
               >
                 <RotateCcw size={17} />
                 {BTN_REATIVAR}
-              </button>
+              </Button>
             )}
 
-            <button
+            <Button
+              variant="destructive"
               onClick={() => { void handleDelete(); }}
               disabled={actionLoading}
-              style={{
-                width: '100%', padding: '12px', borderRadius: 12,
-                background: 'rgba(239,68,68,.08)',
-                color: '#f87171', fontSize: 14,
-                border: '1px solid rgba(239,68,68,.18)',
-                cursor: actionLoading ? 'not-allowed' : 'pointer',
-                opacity: actionLoading ? .6 : 1,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              }}
+              className="w-full h-auto py-3 text-sm rounded-xl disabled:opacity-60 gap-2"
             >
               <Trash2 size={15} />
               {BTN_DELETAR}
-            </button>
+            </Button>
           </div>
         )}
       </div>

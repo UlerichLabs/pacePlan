@@ -1,13 +1,21 @@
 export function VolumeTypeBar({ label, count, max, color }: { label: string; count: number; max: number; color: string }) {
   const pct = max > 0 ? (count / max) * 100 : 0;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-      <div style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
-      <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 70, flexShrink: 0 }}>{label}</span>
-      <div style={{ flex: 1, height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 4, background: color }} />
+    <div className="flex items-center gap-2 mb-2.5">
+      <div
+        className="w-[7px] h-[7px] rounded-full shrink-0"
+        style={{ '--bar-color': color } as React.CSSProperties}
+      >
+        <div className="w-full h-full rounded-full bg-[--bar-color]" />
       </div>
-      <span style={{ fontSize: 11, color: 'var(--text-secondary)', width: 16, textAlign: 'right', flexShrink: 0 }}>
+      <span className="text-[11px] text-[--text-muted] w-[70px] shrink-0">{label}</span>
+      <div className="flex-1 h-1 rounded-full bg-surface overflow-hidden">
+        <div
+          className="h-full rounded-full bg-[--bar-color] w-[--pct]"
+          style={{ '--pct': `${pct}%`, '--bar-color': color } as React.CSSProperties}
+        />
+      </div>
+      <span className="text-[11px] text-[--text-secondary] w-4 text-right shrink-0">
         {count}
       </span>
     </div>

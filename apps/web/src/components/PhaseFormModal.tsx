@@ -1,5 +1,7 @@
-import { type CSSProperties, type FormEvent, useState } from 'react';
+import { type FormEvent, useState } from 'react';
 import { X, AlertCircle, Calendar } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { phaseService, PhaseApiError } from '../services/phaseService';
 
 const TITLE = 'Nova Fase';
@@ -21,32 +23,6 @@ interface PhaseFormModalProps {
   onSuccess: () => void;
   onClose: () => void;
 }
-
-const inputStyle: CSSProperties = {
-  width: '100%',
-  padding: '11px 14px',
-  borderRadius: 10,
-  background: 'rgba(255,255,255,.06)',
-  border: '1px solid rgba(255,255,255,.10)',
-  color: 'var(--text-primary)',
-  fontSize: 14,
-  outline: 'none',
-  backdropFilter: 'blur(12px)',
-  WebkitBackdropFilter: 'blur(12px)',
-  transition: 'border-color .15s',
-  boxSizing: 'border-box',
-};
-
-const labelStyle: CSSProperties = {
-  fontSize: 10,
-  fontWeight: 600,
-  letterSpacing: '.08em',
-  textTransform: 'uppercase',
-  color: 'var(--text-hint)',
-  marginBottom: 6,
-  marginTop: 18,
-  display: 'block',
-};
 
 function countWeeks(start: string, end: string): number {
   const s = new Date(`${start}T00:00:00`);
@@ -104,172 +80,125 @@ export function PhaseFormModal({ macrocycleId, onSuccess, onClose }: PhaseFormMo
   return (
     <div
       onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 100,
-        background: 'rgba(0,0,0,.6)',
-        backdropFilter: 'blur(4px)',
-        WebkitBackdropFilter: 'blur(4px)',
-        display: 'flex', alignItems: 'flex-end',
-      }}
+      className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end"
     >
       <div
         onClick={e => e.stopPropagation()}
-        style={{
-          width: '100%', maxWidth: 560, margin: '0 auto',
-          background: 'rgba(18,20,30,.98)',
-          border: '1px solid rgba(255,255,255,.12)',
-          borderRadius: '20px 20px 0 0',
-          backdropFilter: 'blur(40px)',
-          WebkitBackdropFilter: 'blur(40px)',
-          maxHeight: '92dvh',
-          display: 'flex', flexDirection: 'column',
-        }}
+        className="w-full max-w-[560px] mx-auto glass-strong rounded-t-modal max-h-[92dvh] flex flex-col"
       >
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '18px 20px 14px',
-          borderBottom: '1px solid rgba(255,255,255,.08)',
-          flexShrink: 0,
-        }}>
-          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
+        <div className="flex items-center justify-between px-5 pt-[18px] pb-3.5 border-b border-[--border-subtle] shrink-0">
+          <span className="text-[15px] font-bold text-foreground">
             {TITLE}
           </span>
           <button
             onClick={onClose}
-            style={{
-              display: 'flex', padding: 6,
-              background: 'rgba(255,255,255,.06)',
-              border: '1px solid rgba(255,255,255,.10)',
-              borderRadius: 8, cursor: 'pointer',
-              color: 'var(--text-muted)',
-            }}
+            className="flex p-1.5 bg-surface border border-[--border] rounded-md text-[--text-muted] hover:bg-surface-hover transition-colors"
           >
             <X size={16} />
           </button>
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '4px 20px 32px' }}>
+        <div className="flex-1 overflow-y-auto px-5 pb-8 pt-1">
           {error != null && (
-            <div style={{
-              display: 'flex', alignItems: 'flex-start', gap: 10,
-              marginTop: 16,
-              padding: '12px 14px', borderRadius: 10,
-              background: isOverlap ? 'rgba(234,179,8,.08)' : 'rgba(239,68,68,.10)',
-              border: `1px solid ${isOverlap ? 'rgba(234,179,8,.25)' : 'rgba(239,68,68,.25)'}`,
-            }}>
-              <AlertCircle size={15} color={isOverlap ? '#fbbf24' : '#f87171'} style={{ flexShrink: 0, marginTop: 1 }} />
-              <span style={{ fontSize: 13, color: isOverlap ? '#fbbf24' : '#f87171', lineHeight: 1.5 }}>
+            <div className={cn(
+              'warning-box mt-4',
+              isOverlap
+                ? 'bg-warning-fg/8 border border-warning-fg/25'
+                : 'bg-destructive/10 border border-destructive/25'
+            )}>
+              <AlertCircle
+                size={15}
+                className={cn('shrink-0 mt-px', isOverlap ? 'text-warning-fg' : 'text-destructive')}
+              />
+              <span className={cn('text-[13px] leading-relaxed', isOverlap ? 'text-warning-fg' : 'text-destructive')}>
                 {error}
               </span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={labelStyle}>{LABEL_NOME}</span>
+          <form onSubmit={handleSubmit} className="flex flex-col">
+            <span className="section-label">{LABEL_NOME}</span>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder={PLACEHOLDER_NOME}
               required
-              style={inputStyle}
+              className="input-glass"
             />
 
-            <span style={labelStyle}>{LABEL_OBJETIVO}</span>
+            <span className="section-label">{LABEL_OBJETIVO}</span>
             <textarea
               value={objective}
               onChange={e => setObjective(e.target.value)}
               placeholder={PLACEHOLDER_OBJETIVO}
               rows={2}
               required
-              style={{ ...inputStyle, resize: 'vertical', lineHeight: '1.5' }}
+              className="input-glass resize-y leading-relaxed"
             />
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <span style={labelStyle}>{LABEL_DATA_INI}</span>
+                <span className="section-label">{LABEL_DATA_INI}</span>
                 <input
                   type="date"
                   value={startDate}
                   onChange={e => setStartDate(e.target.value)}
                   required
-                  style={{
-                    ...inputStyle,
-                    colorScheme: 'dark',
-                    border: isOutOfBounds ? '1px solid rgba(239,68,68,.4)' : inputStyle.border,
-                  }}
+                  className={cn('input-glass', isOutOfBounds && 'border-destructive/40')}
                 />
               </div>
               <div>
-                <span style={labelStyle}>{LABEL_DATA_FIM}</span>
+                <span className="section-label">{LABEL_DATA_FIM}</span>
                 <input
                   type="date"
                   value={endDate}
                   onChange={e => setEndDate(e.target.value)}
                   required
-                  style={{
-                    ...inputStyle,
-                    colorScheme: 'dark',
-                    border: isOutOfBounds ? '1px solid rgba(239,68,68,.4)' : inputStyle.border,
-                  }}
+                  className={cn('input-glass', isOutOfBounds && 'border-destructive/40')}
                 />
               </div>
             </div>
 
             {weeksCount != null && (
-              <div style={{
-                marginTop: 10,
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '8px 12px', borderRadius: 8,
-                background: 'rgba(99,102,241,.10)',
-                border: '1px solid rgba(99,102,241,.18)',
-              }}>
-                <Calendar size={12} color="#a5b4fc" />
-                <span style={{ fontSize: 11, color: '#a5b4fc', fontWeight: 500 }}>
+              <div className="mt-2.5 flex items-center gap-1.5 px-3 py-2 rounded-md bg-accent border border-primary/18">
+                <Calendar size={12} className="text-primary-subtle" />
+                <span className="text-[11px] text-primary-subtle font-medium">
                   {weeksCount} semana{weeksCount !== 1 ? 's' : ''}
                 </span>
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <span style={labelStyle}>{LABEL_LONGAO}</span>
+                <span className="section-label">{LABEL_LONGAO}</span>
                 <input
                   type="number"
                   value={longRunTarget}
                   onChange={e => setLongRunTarget(e.target.value)}
                   min="1" step="0.5" placeholder="10"
-                  style={inputStyle}
+                  className="input-glass"
                 />
               </div>
               <div>
-                <span style={labelStyle}>{LABEL_VOLUME}</span>
+                <span className="section-label">{LABEL_VOLUME}</span>
                 <input
                   type="number"
                   value={weeklyVolumeTarget}
                   onChange={e => setWeeklyVolumeTarget(e.target.value)}
                   min="1" step="1" placeholder="20"
-                  style={inputStyle}
+                  className="input-glass"
                 />
               </div>
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={submitting}
-              style={{
-                marginTop: 28,
-                width: '100%', padding: '13px', borderRadius: 12,
-                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                color: '#fff', fontSize: 15, fontWeight: 600,
-                border: 'none', cursor: submitting ? 'not-allowed' : 'pointer',
-                boxShadow: '0 4px 20px rgba(99,102,241,.35)',
-                opacity: submitting ? 0.6 : 1,
-                transition: 'opacity .15s',
-              }}
+              className="mt-7 w-full h-auto py-3.5 text-base rounded-xl bg-gradient-to-br from-primary to-violet shadow-primary-glow disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {submitting ? LABEL_SALVANDO : LABEL_SALVAR}
-            </button>
+            </Button>
           </form>
         </div>
       </div>

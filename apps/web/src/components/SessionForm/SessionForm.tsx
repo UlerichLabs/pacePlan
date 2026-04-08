@@ -1,6 +1,8 @@
-import { type CSSProperties, type FormEvent, useState } from 'react';
+import { type FormEvent, useState } from 'react';
 import type { CreateSessionPayload } from '@paceplan/types';
 import { Environment, SessionType } from '@paceplan/types';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { isRunningSession } from '../../services/sessionUtils';
 import { PaceInput } from './PaceInput';
 import { SessionTypeSelect } from './SessionTypeSelect';
@@ -103,54 +105,23 @@ export function SessionForm({ onSubmit, onCancel, isLoading, defaultDate }: Sess
     await onSubmit(payload);
   }
 
-  const sectionLabel: CSSProperties = {
-    fontSize: 10, fontWeight: 600, letterSpacing: '.08em',
-    textTransform: 'uppercase', color: 'var(--text-hint)',
-    marginBottom: 8, marginTop: 20, display: 'block',
-  };
-
-  const inputBase: CSSProperties = {
-    width: '100%', padding: '11px 14px', borderRadius: 10,
-    background: 'rgba(255,255,255,.06)',
-    border: '1px solid rgba(255,255,255,.10)',
-    color: 'var(--text-primary)', fontSize: 14, outline: 'none',
-    backdropFilter: 'blur(12px)',
-    WebkitBackdropFilter: 'blur(12px)',
-    transition: 'border-color .15s',
-  };
-
-  const errorText: CSSProperties = {
-    fontSize: 11, color: '#f87171', marginTop: 4,
-  };
-
-  function envBtnStyle(active: boolean): CSSProperties {
-    return {
-      flex: 1, padding: '11px 14px', borderRadius: 10,
-      background: active ? 'rgba(99,102,241,.18)' : 'rgba(255,255,255,.06)',
-      border: `1px solid ${active ? 'rgba(99,102,241,.45)' : 'rgba(255,255,255,.10)'}`,
-      color: active ? '#a5b4fc' : 'var(--text-muted)',
-      fontSize: 14, fontWeight: active ? 600 : 500,
-      cursor: 'pointer', transition: 'all .15s',
-    };
-  }
-
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column' }}>
-      <span style={sectionLabel}>{LABEL_TIPO}</span>
+    <form onSubmit={handleSubmit} className="flex flex-col">
+      <span className="section-label">{LABEL_TIPO}</span>
       <SessionTypeSelect value={type} onChange={handleTypeChange} />
 
-      <span style={sectionLabel}>{LABEL_DATA}</span>
+      <span className="section-label">{LABEL_DATA}</span>
       <input
         type="date"
         value={date}
         onChange={(e) => setDate(e.target.value)}
-        style={{ ...inputBase, colorScheme: 'dark' }}
+        className="input-glass"
       />
-      {errors.date != null && <span style={errorText}>{errors.date}</span>}
+      {errors.date != null && <span className="text-[11px] text-destructive mt-1">{errors.date}</span>}
 
       {withRunning && (
         <>
-          <span style={sectionLabel}>{LABEL_DISTANCIA}</span>
+          <span className="section-label">{LABEL_DISTANCIA}</span>
           <input
             type="number"
             value={distanceInput}
@@ -158,27 +129,37 @@ export function SessionForm({ onSubmit, onCancel, isLoading, defaultDate }: Sess
             min="0"
             step="0.1"
             placeholder={PLACEHOLDER_DISTANCE}
-            style={inputBase}
+            className="input-glass"
           />
-          {errors.distance != null && <span style={errorText}>{errors.distance}</span>}
+          {errors.distance != null && <span className="text-[11px] text-destructive mt-1">{errors.distance}</span>}
 
-          <span style={sectionLabel}>{LABEL_PACE}</span>
+          <span className="section-label">{LABEL_PACE}</span>
           <PaceInput value={pace} onChange={setPace} />
-          {errors.pace != null && <span style={errorText}>{errors.pace}</span>}
+          {errors.pace != null && <span className="text-[11px] text-destructive mt-1">{errors.pace}</span>}
 
-          <span style={sectionLabel}>{LABEL_AMBIENTE}</span>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <span className="section-label">{LABEL_AMBIENTE}</span>
+          <div className="flex gap-2.5">
             <button
               type="button"
               onClick={() => setEnvironment(Environment.TREADMILL)}
-              style={envBtnStyle(environment === Environment.TREADMILL)}
+              className={cn(
+                'flex-1 px-3.5 py-[11px] rounded-md text-sm transition-all duration-150',
+                environment === Environment.TREADMILL
+                  ? 'bg-accent border border-primary/45 text-primary-subtle font-semibold'
+                  : 'bg-surface border border-[--border] text-[--text-muted] font-medium'
+              )}
             >
               {BTN_ESTEIRA}
             </button>
             <button
               type="button"
               onClick={() => setEnvironment(Environment.OUTDOOR)}
-              style={envBtnStyle(environment === Environment.OUTDOOR)}
+              className={cn(
+                'flex-1 px-3.5 py-[11px] rounded-md text-sm transition-all duration-150',
+                environment === Environment.OUTDOOR
+                  ? 'bg-accent border border-primary/45 text-primary-subtle font-semibold'
+                  : 'bg-surface border border-[--border] text-[--text-muted] font-medium'
+              )}
             >
               {BTN_RUA}
             </button>
@@ -186,45 +167,32 @@ export function SessionForm({ onSubmit, onCancel, isLoading, defaultDate }: Sess
         </>
       )}
 
-      <span style={sectionLabel}>{LABEL_NOTAS}</span>
+      <span className="section-label">{LABEL_NOTAS}</span>
       <textarea
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         rows={3}
         placeholder={NOTES_PLACEHOLDER[type]}
-        style={{ ...inputBase, resize: 'vertical' as const, lineHeight: '1.5' }}
+        className="input-glass resize-y leading-relaxed"
       />
 
-      <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <button
+      <div className="mt-7 flex flex-col gap-2.5">
+        <Button
           type="submit"
           disabled={isLoading}
-          style={{
-            width: '100%', padding: '13px', borderRadius: 12,
-            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-            color: '#fff', fontSize: 15, fontWeight: 600,
-            border: 'none', cursor: isLoading ? 'not-allowed' : 'pointer',
-            boxShadow: '0 4px 20px rgba(99,102,241,.35)',
-            opacity: isLoading ? .6 : 1,
-            transition: 'opacity .15s',
-          }}
+          className="w-full h-auto py-3.5 text-base rounded-xl bg-gradient-to-br from-primary to-violet shadow-primary-glow disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {isLoading ? BTN_SALVANDO : BTN_SALVAR}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="outline"
           onClick={onCancel}
           disabled={isLoading}
-          style={{
-            width: '100%', padding: '12px', borderRadius: 12,
-            background: 'transparent',
-            color: 'var(--text-muted)', fontSize: 14,
-            border: '1px solid rgba(255,255,255,.08)',
-            cursor: isLoading ? 'not-allowed' : 'pointer',
-          }}
+          className="w-full h-auto py-3 text-sm rounded-xl disabled:cursor-not-allowed"
         >
           {BTN_CANCELAR}
-        </button>
+        </Button>
       </div>
     </form>
   );

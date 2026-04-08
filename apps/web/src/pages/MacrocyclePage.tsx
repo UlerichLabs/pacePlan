@@ -1,6 +1,7 @@
-import { type CSSProperties, useState } from 'react';
+import { useState } from 'react';
 import { ChevronLeft, Plus, Target, Archive, FolderOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import { useMacrocycle } from '../hooks/useMacrocycle';
 import { macrocycleService } from '../services/macrocycleService';
 import { PhaseFormModal } from '../components/PhaseFormModal';
@@ -18,12 +19,6 @@ const LABEL_EMPTY_TITLE = 'Nenhum projeto de treino ativo';
 const LABEL_EMPTY_DESC = 'Crie um projeto para organizar suas semanas de treino até a sua próxima prova.';
 const LABEL_EMPTY_CTA = 'Criar projeto de treino';
 const CONFIRM_ARCHIVE = 'Tem certeza que deseja arquivar este projeto? Você poderá criar um novo em seguida.';
-
-const sectionLabel: CSSProperties = {
-  fontSize: 10, fontWeight: 600, letterSpacing: '.08em',
-  textTransform: 'uppercase', color: 'var(--text-hint)',
-  marginBottom: 8, marginTop: 20, display: 'block',
-};
 
 function countWeeks(start: string, end: string): number {
   const s = new Date(`${start}T00:00:00`);
@@ -45,7 +40,6 @@ export function MacrocyclePage() {
       await macrocycleService.archiveActive();
       await refetch();
     } catch {
-      // noop
     } finally {
       setArchiving(false);
     }
@@ -57,34 +51,23 @@ export function MacrocyclePage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <header style={{
-        display: 'flex', alignItems: 'center', gap: 12,
-        padding: '14px 16px',
-        borderBottom: '1px solid rgba(255,255,255,.08)',
-        background: 'rgba(255,255,255,.06)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        flexShrink: 0,
-      }}>
-        <button onClick={() => navigate(-1)} style={{ color: 'var(--text-muted)', display: 'flex', padding: 4, background: 'none', border: 'none', cursor: 'pointer' }}>
+    <div className="flex flex-col h-full">
+      <header className="page-header gap-3">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex p-1 text-[--text-muted] hover:text-foreground transition-colors"
+        >
           <ChevronLeft size={22} />
         </button>
-        <Target size={17} color="#a5b4fc" />
-        <h1 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-primary)', margin: 0, flex: 1 }}>
+        <Target size={17} className="text-primary-subtle" />
+        <h1 className="text-[17px] font-semibold text-foreground flex-1">
           {PAGE_TITLE}
         </h1>
         {macrocycle != null && (
           <button
             onClick={handleArchive}
             disabled={archiving}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              fontSize: 12, fontWeight: 600,
-              color: archiving ? 'var(--text-hint)' : 'var(--text-muted)',
-              background: 'none', border: 'none', cursor: archiving ? 'not-allowed' : 'pointer',
-              padding: '6px 4px',
-            }}
+            className="flex items-center gap-1.5 text-xs font-semibold text-[--text-muted] hover:text-foreground transition-colors px-1 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Archive size={15} />
             {archiving ? LABEL_ARQUIVANDO : LABEL_ARQUIVAR}
@@ -92,90 +75,59 @@ export function MacrocyclePage() {
         )}
       </header>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 32px' }}>
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-8">
         {loading ? (
-          <div style={{ textAlign: 'center', paddingTop: 60, color: 'var(--text-muted)', fontSize: 14 }}>
+          <div className="text-center pt-[60px] text-[--text-muted] text-sm">
             {LABEL_CARREGANDO}
           </div>
         ) : error != null ? (
-          <div style={{
-            padding: '12px 14px', borderRadius: 10,
-            background: 'rgba(239,68,68,.10)', border: '1px solid rgba(239,68,68,.20)',
-            color: '#f87171', fontSize: 13,
-          }}>
+          <div className="error-box">
             {error}
           </div>
         ) : macrocycle === null ? (
-          <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', textAlign: 'center',
-            padding: '60px 24px', gap: 16,
-          }}>
-            <div style={{
-              width: 64, height: 64, borderRadius: 20,
-              background: 'rgba(99,102,241,.12)',
-              border: '1px solid rgba(99,102,241,.20)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <FolderOpen size={28} color="#a5b4fc" />
+          <div className="flex flex-col items-center justify-center text-center px-6 py-[60px] gap-4">
+            <div className="w-16 h-16 rounded-[20px] bg-accent border border-primary/20 flex items-center justify-center">
+              <FolderOpen size={28} className="text-primary-subtle" />
             </div>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
+              <div className="text-base font-bold text-foreground mb-2">
                 {LABEL_EMPTY_TITLE}
               </div>
-              <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 260 }}>
+              <div className="text-[13px] text-[--text-muted] leading-relaxed max-w-[260px]">
                 {LABEL_EMPTY_DESC}
               </div>
             </div>
-            <button
+            <Button
               onClick={() => navigate('/macrocycle/new')}
-              style={{
-                marginTop: 8, padding: '13px 28px', borderRadius: 12,
-                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                color: '#fff', fontSize: 15, fontWeight: 600,
-                border: 'none', cursor: 'pointer',
-                boxShadow: '0 4px 20px rgba(99,102,241,.35)',
-              }}
+              className="mt-2 h-auto px-7 py-3.5 text-base rounded-xl bg-gradient-to-br from-primary to-violet shadow-primary-glow"
             >
               {LABEL_EMPTY_CTA}
-            </button>
+            </Button>
           </div>
         ) : (
           <>
-            <div style={{
-              borderRadius: 14, padding: '16px 18px', marginBottom: 20,
-              background: 'rgba(255,255,255,0.065)',
-              border: '1px solid rgba(255,255,255,0.10)',
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
-            }}>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: '#818cf8', marginBottom: 6 }}>
+            <div className="glass rounded-card px-[18px] py-4 mb-5">
+              <div className="text-[10px] font-bold tracking-[.08em] uppercase text-primary-subtle mb-1.5">
                 MACROCICLO ATIVO
               </div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
+              <div className="text-[18px] font-bold text-foreground mb-1">
                 {macrocycle.name}
               </div>
-              <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--text-muted)' }}>
+              <div className="flex gap-4 text-xs text-[--text-muted]">
                 <span>{macrocycle.goalDistance} km</span>
                 <span>Prova: {macrocycle.raceDate}</span>
                 <span>{countWeeks(macrocycle.startDate, macrocycle.raceDate)} {LABEL_SEMANAS}</span>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <span style={{ ...sectionLabel, marginTop: 0 }}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="section-label mt-0 mb-0">
                 {LABEL_FASES}
               </span>
               {phases.length < 6 && (
                 <button
                   onClick={() => setShowPhaseModal(true)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    fontSize: 12, fontWeight: 600, color: '#a5b4fc',
-                    background: 'rgba(99,102,241,.12)',
-                    border: '1px solid rgba(99,102,241,.25)',
-                    borderRadius: 8, padding: '6px 12px', cursor: 'pointer',
-                  }}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-primary-subtle bg-accent border border-primary/25 rounded-lg px-3 py-1.5 hover:bg-accent/80 transition-colors"
                 >
                   <Plus size={13} />
                   {LABEL_ADD_FASE}
@@ -184,12 +136,7 @@ export function MacrocyclePage() {
             </div>
 
             {phases.length === 0 && (
-              <div style={{
-                textAlign: 'center', padding: '32px 16px', borderRadius: 14,
-                background: 'rgba(255,255,255,.03)',
-                border: '1px dashed rgba(255,255,255,.10)',
-                color: 'var(--text-muted)', fontSize: 13, marginBottom: 16,
-              }}>
+              <div className="text-center px-4 py-8 rounded-card bg-surface border border-dashed border-[--border] text-[--text-muted] text-[13px] mb-4">
                 Nenhuma fase criada ainda. Adicione a primeira fase do seu plano.
               </div>
             )}
@@ -198,38 +145,32 @@ export function MacrocyclePage() {
               .slice()
               .sort((a, b) => a.order - b.order)
               .map(phase => (
-                <div key={phase.id} style={{
-                  borderRadius: 12, marginBottom: 8, padding: '14px 16px',
-                  background: 'rgba(255,255,255,0.065)',
-                  border: '1px solid rgba(255,255,255,0.10)',
-                  backdropFilter: 'blur(24px)',
-                  WebkitBackdropFilter: 'blur(24px)',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
+                <div key={phase.id} className="glass rounded-lg mb-2 px-4 py-3.5">
+                  <div className="flex items-start justify-between gap-3 mb-1.5">
                     <div>
-                      <div style={{ fontSize: 10, fontWeight: 600, color: '#818cf8', marginBottom: 3 }}>
+                      <div className="text-[10px] font-semibold text-primary-subtle mb-[3px]">
                         FASE {phase.order}
                       </div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+                      <div className="text-sm font-bold text-foreground">
                         {phase.name}
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0, fontSize: 11, color: 'var(--text-muted)' }}>
+                    <div className="text-right shrink-0 text-[11px] text-[--text-muted]">
                       <div>{phase.startDate}</div>
                       <div>{phase.endDate}</div>
                     </div>
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8 }}>
+                  <div className="text-[11px] text-[--text-secondary] mb-2">
                     {phase.objective}
                   </div>
-                  <div style={{ display: 'flex', gap: 12 }}>
+                  <div className="flex gap-3">
                     {phase.longRunTarget != null && (
-                      <span style={{ fontSize: 10, color: 'var(--text-muted)', background: 'rgba(139,92,246,.12)', border: '1px solid rgba(139,92,246,.2)', borderRadius: 6, padding: '3px 8px' }}>
+                      <span className="text-[10px] text-[--text-muted] bg-violet/12 border border-violet/20 rounded-md px-2 py-[3px]">
                         {LABEL_LONGAO_META}: {phase.longRunTarget} km
                       </span>
                     )}
                     {phase.weeklyVolumeTarget != null && (
-                      <span style={{ fontSize: 10, color: 'var(--text-muted)', background: 'rgba(34,197,94,.10)', border: '1px solid rgba(34,197,94,.18)', borderRadius: 6, padding: '3px 8px' }}>
+                      <span className="text-[10px] text-[--text-muted] bg-success/10 border border-success/18 rounded-md px-2 py-[3px]">
                         {LABEL_VOLUME_META}: {phase.weeklyVolumeTarget} km/sem
                       </span>
                     )}
