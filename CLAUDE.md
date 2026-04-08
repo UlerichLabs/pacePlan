@@ -3,153 +3,146 @@
 Guia de contexto para sessões do Claude Code neste repositório.
 Leia este arquivo inteiro antes de qualquer ação.
 
----
-
 ## O que é este projeto
 
 App PWA de organização de treinos de corrida. Substitui planilhas.
-**Não tem** GPS, tracking em tempo real, coach automático ou features sociais.
+Não tem GPS, tracking em tempo real, coach automático ou features sociais.
 O usuário é o próprio coach — o app organiza e registra.
 
-Monorepo Turborepo + pnpm workspaces:
+Vitrine de augmented engineering: arquitetura spec-driven com skills,
+ADRs documentados e stack defensável publicamente.
 
-```
+## Estrutura do monorepo
+
 apps/
-  web/   → React 18 + Vite + TypeScript + PWA (porta 5173)
-  api/   → Node + Fastify + TypeScript (porta 3001)
+  web/        → React 18 + Vite 6 + TypeScript + Tailwind v4 + Shadcn/ui (porta 5173)
+  api/        → Node.js + Fastify 5 + TypeScript (porta 3001)
 packages/
-  types/ → Tipos compartilhados entre web e api — FONTE DA VERDADE
-  db/    → Cliente postgres.js + queries SQL tipadas
-  config/→ tsconfigs compartilhados
-```
+  types/      → Interfaces, enums, DTOs, DomainError factory — FONTE DA VERDADE
+  utils/      → Lógica pura: pace calc, formatadores, date utils
+  api-client/ → Serviços de API, query keys TanStack Query
+  ui-logic/   → Hooks de negócio: useWeek, useSessions, useMacrocycleActive
+  db/         → Cliente postgres.js + queries SQL tipadas
+  config/     → tsconfigs compartilhados
 
----
+## Regra de dependência de packages
+
+Se o código não tem JSX, CSS ou referência a DOM → vai para packages/.
+apps/web importa de packages/ — nunca o contrário.
+Nunca duplicar tipos ou lógica que já existe em packages/.
 
 ## Regras inegociáveis
 
 ### Geral
 - TypeScript strict em todo o projeto. Zero `any`. Zero `as unknown`.
-- Sem comentários no código. Nomes auto-descritivos.
-- Sem mensagens hardcoded em português no código — só em constantes nomeadas.
-- Sem `console.log` em código de produção.
+- Zero comentários no código. Nomes auto-descritivos.
+- Zero `console.log` em código de produção.
 
 ### Frontend (apps/web)
 - React funcional puro. Zero class components.
-- Estilização via CSS custom properties definidas em `global.css`. Sem Tailwind, sem styled-components, sem CSS modules.
-- Inline styles permitidos para componentes simples. Para componentes com muitos estados visuais, extrair para objeto de estilos dentro do componente.
-- Sem bibliotecas de UI externas (MUI, Chakra, etc). Componentes próprios.
-- Sem bibliotecas de charts. Gráficos em SVG inline ou CSS puro.
-- Rotas em `App.tsx`. Sem lazy loading no MVP.
-- Estado global via hooks customizados em `src/hooks/`. Sem Redux, Zustand ou Context desnecessário.
-- Formulários com estado local via `useState`. Sem react-hook-form no MVP.
+- Estilização via Tailwind CSS v4. Zero inline styles estáticos.
+- Inline style APENAS para valores calculados em runtime (ex: cor dinâmica de SessionType).
+- Componentes Shadcn/ui para primitivos: Button, Input, Select, Dialog, Badge.
+- Zero libs de UI além de Shadcn/ui (sem MUI, Chakra, etc).
+- Apenas Lucide React para ícones. Zero emojis como ícone de UI.
+- Zero bibliotecas de charts. Gráficos em SVG puro.
+- Zero `useState + useEffect` para dados remotos — sempre TanStack Query.
+- Hooks de dados importados de `@paceplan/ui-logic`.
+- Services importados de `@paceplan/api-client`.
+- Utilitários importados de `@paceplan/utils`.
+- Tipos importados de `@paceplan/types`.
 
 ### Backend (apps/api)
-- Fastify puro. Sem Express.
+- Fastify 5 puro. Sem Express.
 - Validação de entrada com Zod em todas as rotas.
-- Sem ORM. Queries SQL diretas via `postgres.js` em `packages/db/src/queries/`.
-- Erros HTTP via `@fastify/sensible` (`reply.badRequest()`, `reply.notFound()`, etc).
-- Sem lógica de negócio nas rotas — rotas só validam, chamam service/query, retornam.
+- Sem ORM. Queries SQL diretas via postgres.js em packages/db/src/queries/.
+- Erros de domínio via DomainErrors factory de @paceplan/types — nunca new Error().
+- Plugin errorHandler global captura DomainError — routes sem try/catch.
+- Sem lógica de negócio nas rotas — rotas só validam, chamam service, retornam.
 
 ### Banco de dados
-- PostgreSQL. Schema em `packages/db/src/migrations/`.
-- Migrations são arquivos `.sql` numerados: `001_`, `002_`, etc.
-- Campos de data sempre como `DATE` ou `TIMESTAMPTZ`. Nunca `VARCHAR`.
-- `updated_at` sempre via trigger (já configurado na migration 001).
-- Soft delete não existe no MVP. `DELETE` é permanente.
+- PostgreSQL. Schema em packages/db/src/migrations/.
+- Migrations são arquivos .sql numerados: 001_, 002_, etc.
+- Campos de data sempre como DATE ou TIMESTAMPTZ. Nunca VARCHAR.
+- updated_at sempre via trigger. Soft delete não existe — DELETE é permanente.
 
-### Pacote types
-- Qualquer tipo usado em mais de um app DEVE estar em `@paceplan/types`.
-- Nunca duplicar tipos. Nunca redefinir localmente o que já existe em `types/`.
-- Alterar `SessionType` enum ou interfaces core requer atualizar migration SQL correspondente.
-
----
+### Testes
+- Vitest + Testing Library em todos os packages e apps.
+- Coverage mínimo: 80% global — gate no CI. Build falha abaixo disso.
+- packages/utils e packages/ui-logic: lógica pura, zero mocks.
+- Hooks: renderHook + QueryClientWrapper de packages/ui-logic/src/test-utils.tsx.
+- Backend: app.inject() do Fastify contra banco PostgreSQL real (DATABASE_URL_TEST).
+- Truncate nas tabelas afetadas no beforeEach de cada describe.
 
 ## Comandos úteis
 
-```bash
-# Desenvolvimento (ambos os apps em paralelo)
-pnpm dev
-
-# Só a API
-pnpm --filter @paceplan/api dev
-
-# Só o web
-pnpm --filter @paceplan/web dev
-
-# Build completo
-pnpm build
-
-# Type check em tudo
-pnpm type-check
-
-# Rodar migration no banco
+pnpm dev                          # todos os apps em paralelo
+pnpm --filter @paceplan/api dev   # só a API
+pnpm --filter @paceplan/web dev   # só o web
+pnpm build                        # build completo
+pnpm type-check                   # type check em tudo
+pnpm test                         # todos os testes
+pnpm test:coverage                # coverage report
 psql $DATABASE_URL -f packages/db/src/migrations/001_initial_schema.sql
-```
-
----
 
 ## Variáveis de ambiente
 
 ### apps/api/.env
-```
 NODE_ENV=development
 PORT=3001
 HOST=0.0.0.0
-DATABASE_URL=postgresql://paceplan:password@localhost:5432/paceplan
+DATABASE_URL=postgresql://paceplan:SUASWNHA@localhost:5432/paceplan
+DATABASE_URL_TEST=postgresql://USUARIO:SUASENHA@localhost:5432/paceplan_test
 CORS_ORIGIN=http://localhost:5173
-```
 
-O arquivo `.env.example` existe em `apps/api/`. Copiar para `.env` e preencher.
+## Estrutura de arquivos — web
 
----
-
-## Estrutura de arquivos do web
-
-```
-src/
+apps/web/src/
   components/
-    WeekView/       → WeekHeader, WeekSummary, DayCard
-    SessionForm/    → SessionForm, SessionTypeSelect, PaceInput
-    SessionLog/     → LogForm, FeelingScale
-    Dashboard/      → KpiCards, VolumeChart
+    ui/             → Shadcn/ui instalados (nunca editar diretamente)
+    UI/             → Genéricos customizados do projeto
+    WeekView/       → DayCard, SessionRow, WeekHeader, WeekSummary
+    SessionForm/    → SessionForm, SessionTypeSelect, PaceInput, FeelingScale
+    Dashboard/      → KpiCard, VolumeChart, LongRunChart
     History/        → HistoryList
-    UI/             → Layout (nav bottom bar)
-  hooks/
-    useSessions.ts  → CRUD de sessões via API + state local
-    useWeek.ts      → Navegação entre semanas (getMonday, days[])
-  services/
-    sessionService.ts → fetch wrapper para /api/sessions
-    sessionUtils.ts   → helpers: getTypeColor, formatPace, isToday, etc
   pages/
-    WeekPage.tsx          ← IMPLEMENTADO
-    NewSessionPage.tsx    ← STUB — implementar
-    SessionDetailPage.tsx ← STUB — implementar
-    HistoryPage.tsx       ← STUB — implementar
-    DashboardPage.tsx     ← STUB — implementar
+    WeekPage.tsx
+    NewSessionPage.tsx
+    SessionDetailPage.tsx
+    HistoryPage.tsx
+    DashboardPage.tsx
+    MacrocyclePage.tsx
+    PaceCalculatorPage.tsx
+    WeekTemplatePage.tsx
   styles/
-    global.css      → CSS custom properties (cores, spacing, safe area)
-```
+    globals.css     → @theme Tailwind v4, tokens dark/light, classes glass
 
----
+## Estrutura de arquivos — api
 
-## Estrutura de arquivos da API
-
-```
-src/
-  server.ts          → Entry point Fastify, registro de plugins e rotas
+apps/api/src/
+  server.ts
+  app.ts              → função build() exportada — usada em testes e entrypoint
+  plugins/
+    errorHandler.ts   → captura DomainError globalmente
   routes/
-    health.ts        ← IMPLEMENTADO
-    sessions.ts      ← IMPLEMENTADO (todos os endpoints)
-  services/          → Lógica de negócio (streak, stats) — a implementar
-  middleware/        → Middleware customizado — a implementar se necessário
-```
-
----
+    sessions.ts
+    macrocycles.ts
+  services/
+    sessionService.ts
+    macrocycleService.ts
 
 ## Endpoints da API
 
-```
 GET    /health
+GET    /api/macrocycles/active
+POST   /api/macrocycles
+GET    /api/macrocycles/:id/phases
+POST   /api/macrocycles/:id/phases
+GET    /api/macrocycles/:id/pace-profile
+POST   /api/macrocycles/:id/pace-profile
+GET    /api/macrocycles/:id/week-template
+POST   /api/macrocycles/:id/week-template
+
 GET    /api/sessions?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
 GET    /api/sessions/:id
 POST   /api/sessions
@@ -158,99 +151,86 @@ DELETE /api/sessions/:id
 POST   /api/sessions/:id/log
 POST   /api/sessions/:id/skip
 POST   /api/sessions/:id/reactivate
-```
 
----
-
-## Prioridade de implementação (MVP)
-
-**Épico 01 — Gestão de sessões (CRUD)** → Implementar `NewSessionPage` e `SessionDetailPage`
-**Épico 02 — Visão semanal** → `WeekPage` está estruturada, completar `DayCard` actions
-**Épico 03 — Dashboard** → `DashboardPage` + `KpiCards` + `VolumeChart` (SVG puro)
-
-Cada página tem um comentário `// TODO (CC):` explicando exatamente o que implementar.
-
----
-
-## SessionType — referência rápida
-
-| Tipo | Cor | Tem distância? |
-|------|-----|----------------|
-| EASY_RUN | #22c55e | sim |
-| QUALITY_RUN | #f97316 | sim |
-| LONG_RUN | #8b5cf6 | sim |
-| PACE_RUN | #ec4899 | sim |
-| RECOVERY_RUN | #06b6d4 | sim |
-| RACE | #eab308 | sim |
-| STRENGTH_LOWER | #6366f1 | não |
-| STRENGTH_UPPER | #818cf8 | não |
-| MOBILITY | #64748b | não |
-| REST | #334155 | não |
-
----
-
-## Domínio — regras críticas
-
-1. `REST`, `STRENGTH_LOWER`, `STRENGTH_UPPER`, `MOBILITY` nunca têm `targetDistance` nem `targetPace`
-2. `status: 'done'` só existe com `SessionLog` preenchido
-3. `status: 'skipped'` não conta em volume nem streak
-4. `REST` conta como dia válido no streak
-5. Pace sempre no formato `"MM:SS"` (ex: `"5:30"`)
-6. Distâncias sempre em km com 1 ou 2 casas decimais
-
----
-
-## Deploy (Digital Ocean Droplet)
-
-- API roda com `node dist/server.js` via PM2
-- Web é build estático servido por Nginx
-- Banco PostgreSQL na mesma máquina
-- Nginx faz proxy de `/api/*` para `localhost:3001`
-- HTTPS via Certbot (Let's Encrypt)
-
-O `docker-compose.yml` na raiz serve apenas para dev local com Postgres.
-
----
+POST   /api/weeks/populate
 
 ## Skills disponíveis
 
-Leia as skills antes de implementar qualquer feature:
+Leia as skills relevantes ANTES de implementar qualquer feature.
+Skills em .agents/skills/ — padrão Agent Skills (agentskills.io).
+Compatível com Claude Code, Gemini CLI, Codex.
 
-```
-.claude/skills/paceplan-sdd.md        → Épicos, stories e ACs completos
-.claude/skills/paceplan-components.md → Padrões visuais, exemplos de componente
-```
-
-### Como usar nas sessões do CC
-
-Uma story por sessão. Prompt de entrada padrão:
-
-```
-Leia o CLAUDE.md, a skill paceplan-sdd.md e a skill paceplan-components.md.
-Implemente a Story [X.Y] — [nome].
-Siga os ACs exatos. Sem bibliotecas externas de UI ou form.
-```
-
----
-
-## Skills (padrão Agent Skills aberto)
-
-Skills em `.agents/skills/` — compatível com Claude Code, Gemini CLI, Codex e qualquer agente que implemente o padrão agentskills.io.
-
-```
 .agents/skills/
   paceplan-sdd/
-    SKILL.md                  → Épicos, stories, ACs
-    references/domain.md      → Domínio detalhado, hooks, regras
+    SKILL.md                → Épicos, stories, ACs completos, domínio, endpoints
+    references/domain.md    → SessionTypes, helpers, hooks, utils
+  paceplan-frontend/
+    SKILL.md                → Regras TypeScript, Tailwind, Shadcn, TanStack Query, testes
+  paceplan-design/
+    SKILL.md                → Tokens de cor dark/light, glass, layout responsivo, ícones
   paceplan-components/
-    SKILL.md                  → Design system, padrões visuais
-    references/components.md  → Exemplos completos de componentes
-```
+    SKILL.md                → Estrutura de página, hooks, PaceInput, SessionTypeSelect
+    references/components.md → Exemplos canônicos de componentes
+  paceplan-backend/
+    SKILL.md                → Arquitetura 3 camadas, DomainErrors, Zod, testes
+  paceplan-tests-utils/
+    SKILL.md                → Testes de lógica pura em packages/utils
+  paceplan-tests-frontend/
+    SKILL.md                → Testes de hooks e componentes React
+  paceplan-tests-backend/
+    SKILL.md                → Testes de integração via app.inject()
 
-### Prompt de entrada por story (uma por sessão)
+docs/adr/                   → Decisões arquiteturais (001–008)
 
-```
-Leia o CLAUDE.md e as skills paceplan-sdd e paceplan-components.
-Implemente a Story 01.1 — criação de sessão (NewSessionPage).
-Siga os ACs exatos. Sem bibliotecas externas de UI ou form.
-```
+## Prompt de entrada por story (uma por sessão)
+
+Leia o CLAUDE.md e as skills relevantes para esta story.
+Implemente a Story [US-XX] — [nome].
+Siga os ACs exatos. Branch: feat/us-xx-nome-curto.
+
+## SessionType — referência rápida
+
+| Tipo           | Cor     | É corrida? | Tem dist/pace? |
+|----------------|---------|------------|----------------|
+| EASY_RUN       | #22c55e | sim        | sim            |
+| QUALITY_RUN    | #f97316 | sim        | sim            |
+| LONG_RUN       | #8b5cf6 | sim        | sim            |
+| PACE_RUN       | #6366f1 | sim        | sim            |
+| RECOVERY_RUN   | #06b6d4 | sim        | sim            |
+| RACE           | #ec4899 | sim        | sim            |
+| STRENGTH_LOWER | #f59e0b | não        | não            |
+| STRENGTH_UPPER | #f59e0b | não        | não            |
+| MOBILITY       | #14b8a6 | não        | não            |
+| REST           | #6b7280 | não        | não            |
+
+## Regras de domínio críticas
+
+1. STRENGTH_*, MOBILITY e REST nunca têm targetDistance nem targetPace
+2. status 'done' só existe com SessionLog preenchido
+3. status 'skipped' não conta em volume nem streak
+4. REST, MOBILITY e STRENGTH_* contam no streak de consistência
+5. Pace sempre no formato "MM:SS" (ex: "5:30")
+6. Distâncias sempre em km com 1 ou 2 casas decimais
+7. Apenas 1 macrociclo ativo por vez
+8. Fases não podem ter datas sobrepostas no mesmo macrociclo
+
+## DomainErrors — referência rápida
+
+DomainErrors.sessionNotFound(id)
+DomainErrors.sessionAlreadyLogged(id)
+DomainErrors.sessionNotDone(id)
+DomainErrors.macrocycleAlreadyActive()
+DomainErrors.macrocycleNotFound(id)
+DomainErrors.phaseNotFound(id)
+DomainErrors.phaseOverlapConflict()
+DomainErrors.invalidPaceFormat(value)
+DomainErrors.invalidDateRange()
+
+## Deploy (DigitalOcean Droplet)
+
+- API roda com node dist/server.js via PM2
+- Web é build estático servido por Nginx
+- Banco PostgreSQL na mesma máquina
+- Nginx faz proxy de /api/* para localhost:3001
+- HTTPS via Certbot (Let's Encrypt)
+- Branch de deploy: feat/deploy (Nginx config, PM2, scripts prontos)

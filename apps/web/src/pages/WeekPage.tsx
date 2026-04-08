@@ -1,23 +1,26 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { useWeek } from '../hooks/useWeek';
 import { useSessions } from '../hooks/useSessions';
-import { useMacrocycle } from '../hooks/useMacrocycle';
+import { useActiveContext } from '../hooks/useActiveContext';
+import { ContextBanner } from '../components/WeekView/ContextBanner';
 import { formatDate, getTypeColor, getTypeLabel, isToday, SESSION_ICONS } from '../services/sessionUtils';
 
 const PAGE_TITLE = 'Semana';
 const LABEL_ESTA_SEMANA = 'Esta semana';
-const LABEL_FASE = 'FASE';
-const LABEL_SEMANA = 'SEMANA';
-const LABEL_DE = 'DE';
-const LABEL_SETUP_MACRO = 'Configure seu macrociclo';
-const LABEL_CONFIGURAR = 'Configurar';
 
 export function WeekPage() {
   const navigate = useNavigate();
   const { weekStart, weekEnd, days, isCurrentWeek, goToPrevWeek, goToNextWeek } = useWeek();
   const { sessions, loading } = useSessions(weekStart, weekEnd);
-  const { macrocycle, currentPhase, weekInPhase, totalWeeksInPhase, phaseProgressPct, loading: macroLoading } = useMacrocycle();
+  const { context, responseCode, loading: contextLoading, notFound } = useActiveContext();
+
+  useEffect(() => {
+    if (notFound) {
+      navigate('/macrocycle', { replace: true });
+    }
+  }, [notFound, navigate]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -64,52 +67,7 @@ export function WeekPage() {
         </button>
       </header>
 
-      {!macroLoading && (
-        currentPhase ? (
-          <div style={{
-            padding: '12px 16px',
-            borderBottom: '1px solid rgba(255,255,255,.06)',
-            background: 'rgba(255,255,255,.03)',
-            flexShrink: 0,
-          }}>
-            <div style={{
-              fontSize: 10, fontWeight: 700, letterSpacing: '.08em',
-              textTransform: 'uppercase', color: '#818cf8', marginBottom: 5,
-            }}>
-              {LABEL_FASE} {currentPhase.order} · {LABEL_SEMANA} {weekInPhase} {LABEL_DE} {totalWeeksInPhase}
-            </div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>
-              {currentPhase.name}
-            </div>
-            <div style={{ height: 3, borderRadius: 3, background: 'rgba(255,255,255,.08)', overflow: 'hidden' }}>
-              <div style={{
-                width: `${phaseProgressPct}%`, height: '100%', borderRadius: 3,
-                background: 'linear-gradient(90deg, #6366f1, #818cf8)',
-              }} />
-            </div>
-          </div>
-        ) : macrocycle === null ? (
-          <div style={{
-            padding: '11px 16px', flexShrink: 0,
-            background: 'rgba(99,102,241,.07)',
-            borderBottom: '1px solid rgba(99,102,241,.15)',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }}>
-            <span style={{ fontSize: 12, color: '#a5b4fc' }}>{LABEL_SETUP_MACRO}</span>
-            <button
-              onClick={() => navigate('/macrocycle')}
-              style={{
-                fontSize: 11, fontWeight: 600, color: '#a5b4fc',
-                background: 'rgba(99,102,241,.18)',
-                border: '1px solid rgba(99,102,241,.35)',
-                borderRadius: 8, padding: '5px 12px', cursor: 'pointer',
-              }}
-            >
-              {LABEL_CONFIGURAR}
-            </button>
-          </div>
-        ) : null
-      )}
+      <ContextBanner context={context} responseCode={responseCode} loading={contextLoading} />
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
         {loading ? (
