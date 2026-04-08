@@ -13,7 +13,9 @@ export const ERROR_CODES = {
     INVALID_NAME_OBJECTIVE: "400.020",
     OUT_OF_BOUNDS: "400.021",
     OVERLAP: "409.020",
+    NOT_FOUND: "404.020",
     CREATED: "201.002",
+    UPDATED: "200.020",
   },
   CONTEXT: {
     SUCCESS: "200.000",
@@ -36,7 +38,9 @@ export const ERROR_MESSAGES = {
     INVALID_NAME_OBJECTIVE: "Defina um nome e um objetivo claro para esta fase",
     OUT_OF_BOUNDS: "O período da fase deve estar dentro das datas do macrociclo",
     OVERLAP: "As datas desta fase entram em conflito com uma fase já cadastrada neste macrociclo",
+    NOT_FOUND: "Fase não encontrada neste macrociclo",
     CREATED: "Fase '{name}' adicionada ao seu planejamento.",
+    UPDATED: "Fase '{name}' atualizada com sucesso.",
   },
 } as const;
 
