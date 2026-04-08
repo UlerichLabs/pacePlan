@@ -19,6 +19,7 @@ export {
   archiveActiveMacrocycle,
   findPhasesByMacrocycle,
   createPhase,
+  getActiveMacrocycleContext,
 } from "./queries/macrocycles.js";
 
 export type { CreateMacrocyclePayload } from "./queries/macrocycles.js";

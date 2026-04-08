@@ -27,6 +27,15 @@ const createMacrocycleSchema = z.object({
 });
 
 export async function macrocyclesRoutes(app: FastifyInstance): Promise<void> {
+  app.get("/active/context", async (_req, reply) => {
+    const result = await macrocycleService.getActiveContext();
+    return reply.send({
+      status: "SUCCESS",
+      code: result.code,
+      context: result.context,
+    });
+  });
+
   app.get("/active", async (_req, reply) => {
     const macrocycle = await findActiveMacrocycle(sql);
     if (!macrocycle) {
