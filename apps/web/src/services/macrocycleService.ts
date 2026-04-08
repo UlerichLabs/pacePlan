@@ -2,6 +2,17 @@ import type { Macrocycle, Phase } from '@paceplan/types';
 
 const BASE = '/api/macrocycles';
 
+export interface ActiveContextProgress {
+  currentWeekNumber: number;
+  totalWeeksInPhase: number;
+}
+
+export interface ActiveContext {
+  macrocycle: Macrocycle;
+  currentPhase: Phase | null;
+  progress: ActiveContextProgress | null;
+}
+
 export class MacrocycleApiError extends Error {
   statusCode: number;
   code: string;
@@ -93,4 +104,19 @@ export const macrocycleService = {
 
   createPhase: (id: string, payload: CreatePhasePayload) =>
     request<Phase>(`${BASE}/${id}/phases`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  async getActiveContext(): Promise<{ status: string; code: string; context: ActiveContext }> {
+    const res = await fetch(`${BASE}/active/context`, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as { error?: string; code?: string; statusCode?: number };
+      throw new MacrocycleApiError(
+        body.error ?? `HTTP ${res.status}`,
+        body.statusCode ?? res.status,
+        body.code ?? '',
+      );
+    }
+    return res.json() as Promise<{ status: string; code: string; context: ActiveContext }>;
+  },
 };
