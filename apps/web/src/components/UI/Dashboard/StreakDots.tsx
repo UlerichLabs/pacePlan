@@ -1,18 +1,28 @@
+import { cn } from '@/lib/utils';
+
 export type StreakDayType = 'run' | 'strength' | 'rest' | 'empty';
+
+const DOT_BG: Record<StreakDayType, string> = {
+  run:      'bg-success/50',
+  strength: 'bg-accent',
+  rest:     'bg-surface',
+  empty:    'bg-surface',
+};
 
 export function StreakDots({ days }: { days: { date: string; type: StreakDayType }[] }) {
   return (
-    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+    <div className="flex gap-1 flex-wrap">
       {days.map((day, i) => {
         const isLast = i === days.length - 1;
-        let bg = 'rgba(255,255,255,0.06)';
-        if (day.type === 'run') bg = 'rgba(34,197,94,0.5)';
-        else if (day.type === 'strength') bg = 'rgba(99,102,241,0.5)';
         return (
-          <div key={day.date} style={{
-            width: 14, height: 14, borderRadius: 3, background: bg,
-            outline: isLast ? '2px solid #6366f1' : 'none', outlineOffset: 1,
-          }} />
+          <div
+            key={day.date}
+            className={cn(
+              'w-3.5 h-3.5 rounded-sm',
+              DOT_BG[day.type],
+              isLast && 'outline outline-2 outline-primary outline-offset-1'
+            )}
+          />
         );
       })}
     </div>

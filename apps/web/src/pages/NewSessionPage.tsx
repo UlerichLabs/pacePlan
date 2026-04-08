@@ -28,34 +28,21 @@ export function NewSessionPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <header style={{
-        display: 'flex', alignItems: 'center', gap: 12,
-        padding: '14px 16px',
-        borderBottom: '1px solid rgba(255,255,255,.08)',
-        background: 'rgba(255,255,255,.06)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        flexShrink: 0,
-      }}>
+    <div className="flex flex-col h-full">
+      <header className="page-header gap-3">
         <button
           onClick={() => navigate(-1)}
-          style={{ color: 'var(--text-muted)', display: 'flex', padding: 4 }}
+          className="flex p-1 text-[--text-muted] hover:text-foreground transition-colors"
         >
           <ChevronLeft size={22} />
         </button>
-        <h1 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-primary)' }}>
+        <h1 className="text-[17px] font-semibold text-foreground">
           {PAGE_TITLE}
         </h1>
       </header>
-      <div style={{ flex: 1, overflowY: 'auto', padding: 16, paddingBottom: 32 }}>
+      <div className="flex-1 overflow-y-auto p-4 pb-8">
         {serverError != null && (
-          <div style={{
-            marginBottom: 16, padding: '12px 14px', borderRadius: 10,
-            background: 'rgba(239,68,68,.10)',
-            border: '1px solid rgba(239,68,68,.20)',
-            color: '#f87171', fontSize: 13,
-          }}>
+          <div className="error-box mb-4">
             {serverError}
           </div>
         )}

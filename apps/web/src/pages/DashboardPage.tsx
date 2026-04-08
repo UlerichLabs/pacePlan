@@ -1,4 +1,4 @@
-import { type CSSProperties, useState } from 'react';
+import { useState } from 'react';
 import { SessionType } from '@paceplan/types';
 import type { TrainingSession } from '@paceplan/types';
 import { useMacrocycle } from '../hooks/useMacrocycle';
@@ -27,14 +27,6 @@ const LABEL_VOLUME_SEMANA = 'Volume — semana atual';
 const LABEL_VOLUME_CHART = 'Volume de corrida — 8 semanas';
 const LABEL_META_SEMANAL = 'meta semanal';
 const LABEL_CARREGANDO = 'Carregando...';
-
-const GLASS: CSSProperties = {
-  background: 'rgba(255,255,255,0.065)',
-  border: '1px solid rgba(255,255,255,0.10)',
-  backdropFilter: 'blur(24px)',
-  WebkitBackdropFilter: 'blur(24px)',
-  borderRadius: 14,
-};
 
 function getWeekMondayStr(date: Date): string {
   const d = new Date(date);
@@ -123,8 +115,6 @@ function buildLongRunChartData(sessions: TrainingSession[], currentWeekStart: st
   return data;
 }
 
-
-
 function buildStreakDots(sessions: TrainingSession[], today: string): { date: string; type: StreakDayType }[] {
   return Array.from({ length: 14 }, (_, i) => {
     const dateStr = addDays(today, -(13 - i));
@@ -164,154 +154,144 @@ export function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>{LABEL_CARREGANDO}</span>
+      <div className="h-full flex items-center justify-center">
+        <span className="text-sm text-[--text-muted]">{LABEL_CARREGANDO}</span>
       </div>
     );
   }
 
   return (
-    <div style={{ height: '100%', overflowY: 'auto', padding: '16px 16px 32px' }}>
-      <div style={{ position: 'relative', minHeight: '100%' }}>
-
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 0 }}>
-          <div style={{ position: 'absolute', width: 300, height: 300, borderRadius: '50%', background: '#6366f1', filter: 'blur(90px)', opacity: 0.14, top: -80, left: -60 }} />
-          <div style={{ position: 'absolute', width: 250, height: 250, borderRadius: '50%', background: '#8b5cf6', filter: 'blur(90px)', opacity: 0.12, bottom: 100, right: -50 }} />
-          <div style={{ position: 'absolute', width: 200, height: 200, borderRadius: '50%', background: '#22c55e', filter: 'blur(80px)', opacity: 0.07, top: '45%', right: '15%' }} />
-        </div>
-
-        <div style={{ position: 'relative', zIndex: 1 }}>
-
-          {currentPhase && (
-            <div style={{ ...GLASS, padding: '16px 18px', marginBottom: 12, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.10em', textTransform: 'uppercase', color: '#818cf8', marginBottom: 6 }}>
-                  {LABEL_PHASE_TAG} {currentPhase.order} · {LABEL_SEMANA} {weekInPhase} {LABEL_DE} {totalWeeksInPhase}
-                </div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>
-                  {currentPhase.order} — {currentPhase.name}
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
-                  {currentPhase.objective}
-                </div>
-                <div style={{ height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-                  <div style={{ width: `${phaseProgressPct}%`, height: '100%', borderRadius: 4, background: 'linear-gradient(90deg, #6366f1, #818cf8)' }} />
-                </div>
-              </div>
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <div style={{ fontSize: 36, fontWeight: 800, color: '#a5b4fc', letterSpacing: '-0.03em', lineHeight: 1 }}>
-                  {weeksToRace}
-                </div>
-                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4, letterSpacing: '.02em' }}>
-                  {LABEL_WEEKS_TO_RACE}
-                </div>
-              </div>
+    <div className="h-full overflow-y-auto px-4 pt-4 pb-8">
+      {currentPhase && (
+        <div className="glass rounded-card px-[18px] py-4 mb-3 flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="text-[10px] font-bold tracking-[.10em] uppercase text-primary-subtle mb-1.5">
+              {LABEL_PHASE_TAG} {currentPhase.order} · {LABEL_SEMANA} {weekInPhase} {LABEL_DE} {totalWeeksInPhase}
             </div>
-          )}
-
-          <KPIBanner
-            weeklyRunKm={weeklyRunKm}
-            phaseTarget={phaseTarget}
-            lastLongRun={lastLongRun}
-            longRunTarget={longRunTarget}
-            longRunDelta={longRunDelta}
-            streak={streak}
-            done={done}
-            total={total}
-          />
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-            <div style={{ ...GLASS, padding: '16px' }}>
-              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text-hint)', marginBottom: 12 }}>
-                {LABEL_PROGR_LONGAO}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-                <span style={{ fontSize: 22, fontWeight: 700, color: '#8b5cf6', letterSpacing: '-.02em' }}>
-                  {lastLongRun.toFixed(1)} km
-                </span>
-                {longRunTarget > 0 && (
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                      {LABEL_META_FASE} {longRunTarget} km
-                    </div>
-                    <div style={{ fontSize: 10, color: longRunDelta >= 0 ? '#4ade80' : '#f87171', fontWeight: 600 }}>
-                      {longRunDelta >= 0 ? '+' : ''}{longRunDelta.toFixed(1)} km
-                    </div>
-                  </div>
-                )}
-              </div>
-              <LongRunProgressChart data={longRunChartData} phaseTarget={longRunTarget} />
-              <div style={{ display: 'flex', gap: 14, marginTop: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <div style={{ width: 16, height: 2, borderRadius: 1, background: '#8b5cf6' }} />
-                  <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{LABEL_REALIZADO}</span>
-                </div>
-                {longRunTarget > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <div style={{ width: 16, height: 0, borderTop: '2px dashed #6366f1', opacity: 0.7 }} />
-                    <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{LABEL_META}</span>
-                  </div>
-                )}
-              </div>
+            <div className="text-base font-bold text-foreground mb-0.5">
+              {currentPhase.order} — {currentPhase.name}
             </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ ...GLASS, padding: '14px 16px' }}>
-                <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text-hint)', marginBottom: 10 }}>
-                  {LABEL_STREAK_CONSIST}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 12 }}>
-                  <span style={{ fontSize: 28, fontWeight: 800, color: '#eab308', letterSpacing: '-.03em' }}>
-                    {streak}
-                  </span>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{LABEL_STREAK}</span>
-                </div>
-                <StreakDots days={streakDots} />
-                <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(34,197,94,0.5)' }} />
-                    <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>corrida</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(99,102,241,0.5)' }} />
-                    <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>força</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(255,255,255,0.06)' }} />
-                    <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>descanso</span>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ ...GLASS, padding: '14px 16px', flex: 1 }}>
-                <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text-hint)', marginBottom: 12 }}>
-                  {LABEL_VOLUME_SEMANA}
-                </div>
-                <VolumeTypeBar label={LABEL_CORRIDA}    count={volumeByType.run}      max={volumeMax} color="#22c55e" />
-                <VolumeTypeBar label={LABEL_FORCA}      count={volumeByType.strength} max={volumeMax} color="#6366f1" />
-                <VolumeTypeBar label={LABEL_MOBILIDADE} count={volumeByType.mobility} max={volumeMax} color="#64748b" />
-              </div>
+            <div className="text-[11px] text-[--text-muted] mb-3">
+              {currentPhase.objective}
+            </div>
+            <div className="progress-track">
+              <div
+                className="progress-bar w-[--progress]"
+                style={{ '--progress': `${phaseProgressPct}%` } as React.CSSProperties}
+              />
             </div>
           </div>
-
-          <div style={{ ...GLASS, padding: '16px' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text-hint)', marginBottom: 10 }}>
-              {LABEL_VOLUME_CHART}
+          <div className="text-right shrink-0">
+            <div className="text-[36px] font-extrabold text-primary-subtle tracking-tight leading-none">
+              {weeksToRace}
             </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
-              <span style={{ fontSize: 20, fontWeight: 700, color: '#4ade80', letterSpacing: '-.02em' }}>
-                {currentWeekVolume.toFixed(1)} km
+            <div className="text-[10px] text-[--text-muted] mt-1 tracking-[.02em]">
+              {LABEL_WEEKS_TO_RACE}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <KPIBanner
+        weeklyRunKm={weeklyRunKm}
+        phaseTarget={phaseTarget}
+        lastLongRun={lastLongRun}
+        longRunTarget={longRunTarget}
+        longRunDelta={longRunDelta}
+        streak={streak}
+        done={done}
+        total={total}
+      />
+
+      <div className="grid grid-cols-2 gap-2.5 mb-3">
+        <div className="glass rounded-card p-4">
+          <div className="text-[10px] font-semibold tracking-[.08em] uppercase text-[--text-hint] mb-3">
+            {LABEL_PROGR_LONGAO}
+          </div>
+          <div className="flex items-baseline justify-between mb-2.5">
+            <span className="text-[22px] font-bold text-violet tracking-tight">
+              {lastLongRun.toFixed(1)} km
+            </span>
+            {longRunTarget > 0 && (
+              <div className="text-right">
+                <div className="text-[10px] text-[--text-muted]">
+                  {LABEL_META_FASE} {longRunTarget} km
+                </div>
+                <div className={`text-[10px] font-semibold ${longRunDelta >= 0 ? 'text-success-fg' : 'text-destructive'}`}>
+                  {longRunDelta >= 0 ? '+' : ''}{longRunDelta.toFixed(1)} km
+                </div>
+              </div>
+            )}
+          </div>
+          <LongRunProgressChart data={longRunChartData} phaseTarget={longRunTarget} />
+          <div className="flex gap-3.5 mt-2">
+            <div className="flex items-center gap-[5px]">
+              <div className="w-4 h-0.5 rounded-sm bg-violet" />
+              <span className="text-[9px] text-[--text-muted]">{LABEL_REALIZADO}</span>
+            </div>
+            {longRunTarget > 0 && (
+              <div className="flex items-center gap-[5px]">
+                <div className="w-4 border-t-2 border-dashed border-primary opacity-70" />
+                <span className="text-[9px] text-[--text-muted]">{LABEL_META}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2.5">
+          <div className="glass rounded-card px-4 py-3.5">
+            <div className="text-[10px] font-semibold tracking-[.08em] uppercase text-[--text-hint] mb-2.5">
+              {LABEL_STREAK_CONSIST}
+            </div>
+            <div className="flex items-baseline gap-1.5 mb-3">
+              <span className="text-[28px] font-extrabold text-warning-fg tracking-tight">
+                {streak}
               </span>
-              {phaseTarget > 0 && (
-                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                  {LABEL_META_SEMANAL}: {phaseTarget} km
-                </span>
-              )}
+              <span className="text-[11px] text-[--text-muted]">{LABEL_STREAK}</span>
             </div>
-            <WeeklyVolumeChart data={volumeChartData} target={phaseTarget} />
+            <StreakDots days={streakDots} />
+            <div className="flex gap-2.5 mt-2">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-sm bg-success/50" />
+                <span className="text-[9px] text-[--text-muted]">corrida</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-sm bg-accent" />
+                <span className="text-[9px] text-[--text-muted]">força</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-sm bg-surface" />
+                <span className="text-[9px] text-[--text-muted]">descanso</span>
+              </div>
+            </div>
           </div>
 
+          <div className="glass rounded-card px-4 py-3.5 flex-1">
+            <div className="text-[10px] font-semibold tracking-[.08em] uppercase text-[--text-hint] mb-3">
+              {LABEL_VOLUME_SEMANA}
+            </div>
+            <VolumeTypeBar label={LABEL_CORRIDA}    count={volumeByType.run}      max={volumeMax} color="var(--success)" />
+            <VolumeTypeBar label={LABEL_FORCA}      count={volumeByType.strength} max={volumeMax} color="var(--primary)" />
+            <VolumeTypeBar label={LABEL_MOBILIDADE} count={volumeByType.mobility} max={volumeMax} color="#64748b" />
+          </div>
         </div>
+      </div>
+
+      <div className="glass rounded-card p-4">
+        <div className="text-[10px] font-semibold tracking-[.08em] uppercase text-[--text-hint] mb-2.5">
+          {LABEL_VOLUME_CHART}
+        </div>
+        <div className="flex items-baseline justify-between mb-3">
+          <span className="text-[20px] font-bold text-success-fg tracking-tight">
+            {currentWeekVolume.toFixed(1)} km
+          </span>
+          {phaseTarget > 0 && (
+            <span className="text-[10px] text-[--text-muted]">
+              {LABEL_META_SEMANAL}: {phaseTarget} km
+            </span>
+          )}
+        </div>
+        <WeeklyVolumeChart data={volumeChartData} target={phaseTarget} />
       </div>
     </div>
   );

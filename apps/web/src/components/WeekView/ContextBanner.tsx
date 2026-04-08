@@ -30,18 +30,11 @@ export function ContextBanner({ context, responseCode, loading }: Props) {
 
   if (responseCode === CODE_NO_CURRENT_PHASE || !currentPhase || !progress) {
     return (
-      <div style={{
-        padding: '11px 16px', flexShrink: 0,
-        background: 'rgba(99,102,241,.07)',
-        borderBottom: '1px solid rgba(99,102,241,.15)',
-      }}>
-        <div style={{
-          fontSize: 10, fontWeight: 700, letterSpacing: '.08em',
-          textTransform: 'uppercase', color: '#818cf8', marginBottom: 2,
-        }}>
+      <div className="px-4 py-[11px] shrink-0 bg-accent/70 border-b border-primary/15">
+        <div className="text-[10px] font-bold tracking-[.08em] uppercase text-primary-subtle mb-0.5">
           {LABEL_TRANSICAO}
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+        <div className="text-xs text-[--text-muted]">
           {macrocycle.goalDistance} {LABEL_KM} · {macrocycle.raceDate}
         </div>
       </div>
@@ -52,46 +45,38 @@ export function ContextBanner({ context, responseCode, loading }: Props) {
   const hasTargets = currentPhase.weeklyVolumeTarget != null || currentPhase.longRunTarget != null;
 
   return (
-    <div style={{
-      padding: '12px 16px',
-      borderBottom: '1px solid rgba(255,255,255,.06)',
-      background: 'rgba(255,255,255,.03)',
-      flexShrink: 0,
-    }}>
-      <div style={{
-        fontSize: 10, fontWeight: 700, letterSpacing: '.08em',
-        textTransform: 'uppercase', color: '#818cf8', marginBottom: 5,
-      }}>
+    <div className="px-4 py-3 border-b border-[--border-subtle] bg-[--surface] shrink-0">
+      <div className="text-[10px] font-bold tracking-[.08em] uppercase text-primary-subtle mb-[5px]">
         {LABEL_FASE} {currentPhase.order} · {LABEL_SEMANA} {progress.currentWeekNumber} {LABEL_DE} {progress.totalWeeksInPhase}
       </div>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: hasTargets ? 4 : 8 }}>
+      <div className={`text-[13px] font-semibold text-foreground ${hasTargets ? 'mb-1' : 'mb-2'}`}>
         {currentPhase.name}
       </div>
       {hasTargets && (
-        <div style={{ display: 'flex', gap: 12, marginBottom: 8 }}>
+        <div className="flex gap-3 mb-2">
           {currentPhase.weeklyVolumeTarget != null && (
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+            <span className="text-[11px] text-[--text-muted]">
               {LABEL_VOLUME}:{' '}
-              <strong style={{ color: 'var(--text-secondary)' }}>
+              <strong className="text-[--text-secondary]">
                 {currentPhase.weeklyVolumeTarget} {LABEL_KM}
               </strong>
             </span>
           )}
           {currentPhase.longRunTarget != null && (
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+            <span className="text-[11px] text-[--text-muted]">
               {LABEL_LONG_RUN}:{' '}
-              <strong style={{ color: 'var(--text-secondary)' }}>
+              <strong className="text-[--text-secondary]">
                 {currentPhase.longRunTarget} {LABEL_KM}
               </strong>
             </span>
           )}
         </div>
       )}
-      <div style={{ height: 3, borderRadius: 3, background: 'rgba(255,255,255,.08)', overflow: 'hidden' }}>
-        <div style={{
-          width: `${progressPct}%`, height: '100%', borderRadius: 3,
-          background: 'linear-gradient(90deg, #6366f1, #818cf8)',
-        }} />
+      <div className="progress-track">
+        <div
+          className="progress-bar w-[--progress]"
+          style={{ '--progress': `${progressPct}%` } as React.CSSProperties}
+        />
       </div>
     </div>
   );

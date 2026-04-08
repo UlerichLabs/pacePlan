@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react';
 import type { SessionLog, TrainingSession } from '@paceplan/types';
 import { SectionLabel } from './SectionLabel';
 import { DeltaBadge } from './DeltaBadge';
@@ -14,14 +13,6 @@ const LABEL_BPM_MAX = 'BPM máximo';
 const LABEL_SENSACAO = 'Sensação';
 const LABEL_NOTAS = 'Notas';
 const LABEL_CONCLUSAO = 'Concluído em';
-
-const glassCard: CSSProperties = {
-  borderRadius: 14, overflow: 'hidden',
-  background: 'var(--glass-bg)',
-  border: '1px solid var(--glass-border)',
-  backdropFilter: 'blur(24px)',
-  WebkitBackdropFilter: 'blur(24px)',
-};
 
 function formatCompletedAt(iso: string): string {
   const d = new Date(iso);
@@ -41,14 +32,14 @@ export function LogSummary({ session, log, withDist }: LogSummaryProps) {
   return (
     <>
       <SectionLabel text={SECTION_RESULTADO} />
-      <div style={{ ...glassCard, border: '1px solid rgba(34,197,94,.18)' }}>
-        <div style={{ padding: '4px 14px 4px' }}>
+      <div className="glass rounded-card overflow-hidden border-success/18">
+        <div className="px-3.5 py-1">
           {withDist && (
             <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,.05)' }}>
-                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{LABEL_DISTANCIA_REAL}</span>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+              <div className="flex justify-between items-center py-2.5 border-b border-[--border-subtle]">
+                <span className="text-sm text-[--text-muted]">{LABEL_DISTANCIA_REAL}</span>
+                <div className="flex items-center">
+                  <span className="text-sm font-semibold text-foreground">
                     {log.actualDistance != null ? formatDistance(log.actualDistance) : '—'}
                   </span>
                   {session.targetDistance != null && log.actualDistance != null && (() => {
@@ -59,10 +50,10 @@ export function LogSummary({ session, log, withDist }: LogSummaryProps) {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,.05)' }}>
-                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{LABEL_PACE_REAL}</span>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+              <div className="flex justify-between items-center py-2.5 border-b border-[--border-subtle]">
+                <span className="text-sm text-[--text-muted]">{LABEL_PACE_REAL}</span>
+                <div className="flex items-center">
+                  <span className="text-sm font-semibold text-foreground">
                     {log.actualPace != null ? formatPace(log.actualPace) : '—'}
                   </span>
                   {session.targetPace != null && log.actualPace != null && (
@@ -83,24 +74,24 @@ export function LogSummary({ session, log, withDist }: LogSummaryProps) {
             </>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,.05)' }}>
-            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{LABEL_SENSACAO}</span>
+          <div className="flex justify-between items-center py-2.5 border-b border-[--border-subtle]">
+            <span className="text-sm text-[--text-muted]">{LABEL_SENSACAO}</span>
             <FeelingCircles feeling={log.feeling} />
           </div>
 
           {log.notes != null && log.notes !== '' && (
-            <div style={{ padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,.05)' }}>
-              <span style={{ fontSize: 11, color: 'var(--text-hint)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600 }}>
+            <div className="py-2.5 border-b border-[--border-subtle]">
+              <span className="text-[11px] text-[--text-hint] uppercase tracking-[.06em] font-semibold">
                 {LABEL_NOTAS}
               </span>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.5 }}>
+              <p className="text-sm text-[--text-secondary] mt-1 leading-relaxed">
                 {log.notes}
               </p>
             </div>
           )}
 
-          <div style={{ padding: '10px 0' }}>
-            <span style={{ fontSize: 12, color: 'var(--text-hint)' }}>
+          <div className="py-2.5">
+            <span className="text-xs text-[--text-hint]">
               {LABEL_CONCLUSAO}: {formatCompletedAt(log.completedAt)}
             </span>
           </div>

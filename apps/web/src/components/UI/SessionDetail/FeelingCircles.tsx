@@ -1,20 +1,22 @@
 import type { FeelingScale } from '@paceplan/types';
 import { FEELING_LABELS } from '@paceplan/types';
+import { cn } from '@/lib/utils';
 
 export function FeelingCircles({ feeling }: { feeling: FeelingScale }) {
   return (
-    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+    <div className="flex gap-1.5 items-center">
       {([1, 2, 3, 4, 5] as const).map((f) => (
         <div
           key={f}
-          style={{
-            width: 10, height: 10, borderRadius: '50%',
-            background: f <= feeling ? 'var(--color-primary)' : 'rgba(255,255,255,.12)',
-            border: f <= feeling ? 'none' : '1px solid rgba(255,255,255,.15)',
-          }}
+          className={cn(
+            'w-2.5 h-2.5 rounded-full',
+            f <= feeling
+              ? 'bg-primary'
+              : 'bg-[--border] border border-[--border-subtle]'
+          )}
         />
       ))}
-      <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 4 }}>
+      <span className="text-xs text-[--text-secondary] ml-1">
         {FEELING_LABELS[feeling]}
       </span>
     </div>

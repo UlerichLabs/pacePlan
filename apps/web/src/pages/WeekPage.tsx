@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useWeek } from '../hooks/useWeek';
 import { useSessions } from '../hooks/useSessions';
 import { useActiveContext } from '../hooks/useActiveContext';
@@ -9,6 +10,18 @@ import { formatDate, getTypeColor, getTypeLabel, isToday, SESSION_ICONS } from '
 
 const PAGE_TITLE = 'Semana';
 const LABEL_ESTA_SEMANA = 'Esta semana';
+
+const STATUS_BADGE: Record<string, string> = {
+  done:    'bg-success/14 text-success-fg border border-success/20',
+  skipped: 'bg-destructive/12 text-destructive border border-destructive/15',
+  planned: 'bg-surface text-[--text-muted] border border-[--border]',
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  done:    'Concluído',
+  skipped: 'Pulado',
+  planned: 'Planejado',
+};
 
 export function WeekPage() {
   const navigate = useNavigate();
@@ -23,45 +36,34 @@ export function WeekPage() {
   }, [notFound, navigate]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <header style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '14px 16px',
-        borderBottom: '1px solid rgba(255,255,255,.08)',
-        background: 'rgba(255,255,255,.06)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        flexShrink: 0,
-      }}>
-        <h1 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-primary)' }}>
+    <div className="flex flex-col h-full">
+      <header className="page-header gap-3 justify-between">
+        <h1 className="text-[17px] font-semibold text-foreground">
           {PAGE_TITLE}
         </h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="flex items-center gap-2">
           <button
             onClick={goToPrevWeek}
-            style={{ color: 'var(--text-muted)', display: 'flex', padding: 6 }}
+            className="flex p-1.5 text-[--text-muted] hover:text-foreground transition-colors"
           >
             <ChevronLeft size={18} />
           </button>
-          <span style={{ fontSize: 12, color: isCurrentWeek ? 'var(--color-primary-s)' : 'var(--text-secondary)', fontWeight: 500 }}>
+          <span className={cn(
+            'text-xs font-medium',
+            isCurrentWeek ? 'text-primary' : 'text-[--text-secondary]'
+          )}>
             {isCurrentWeek ? LABEL_ESTA_SEMANA : weekStart}
           </span>
           <button
             onClick={goToNextWeek}
-            style={{ color: 'var(--text-muted)', display: 'flex', padding: 6 }}
+            className="flex p-1.5 text-[--text-muted] hover:text-foreground transition-colors"
           >
             <ChevronRight size={18} />
           </button>
         </div>
         <button
           onClick={() => navigate('/new')}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: 32, height: 32, borderRadius: 9,
-            background: 'rgba(99,102,241,.18)',
-            border: '1px solid rgba(99,102,241,.3)',
-            color: '#a5b4fc',
-          }}
+          className="flex items-center justify-center w-8 h-8 rounded-[9px] bg-accent border border-primary/30 text-primary-subtle hover:bg-accent/80 transition-colors"
         >
           <Plus size={16} />
         </button>
@@ -69,9 +71,9 @@ export function WeekPage() {
 
       <ContextBanner context={context} responseCode={responseCode} loading={contextLoading} />
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+      <div className="flex-1 overflow-y-auto p-4">
         {loading ? (
-          <div style={{ color: 'var(--text-muted)', fontSize: 14, textAlign: 'center', paddingTop: 40 }}>
+          <div className="text-[--text-muted] text-sm text-center pt-10">
             Carregando...
           </div>
         ) : (
@@ -79,31 +81,26 @@ export function WeekPage() {
             const daySessions = sessions.filter(s => s.date === day);
             const today = isToday(day);
             return (
-              <div key={day} style={{
-                borderRadius: 14, marginBottom: 8, overflow: 'hidden',
-                background: 'var(--glass-bg)',
-                border: today ? '1px solid rgba(99,102,241,.35)' : '1px solid var(--glass-border)',
-                backdropFilter: 'blur(24px)',
-                WebkitBackdropFilter: 'blur(24px)',
-                boxShadow: today ? '0 0 0 1px rgba(99,102,241,.2)' : 'none',
-              }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '10px 14px',
-                  borderBottom: daySessions.length > 0 ? '1px solid rgba(255,255,255,.06)' : 'none',
-                }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: today ? 'var(--color-primary-s)' : 'var(--text-secondary)' }}>
+              <div
+                key={day}
+                className={cn(
+                  'rounded-card mb-2 overflow-hidden glass',
+                  today && 'border-primary/35 shadow-[0_0_0_1px_rgba(99,102,241,.2)]'
+                )}
+              >
+                <div className={cn(
+                  'flex items-center justify-between px-3.5 py-2.5',
+                  daySessions.length > 0 && 'border-b border-[--border-subtle]'
+                )}>
+                  <span className={cn(
+                    'text-[13px] font-semibold',
+                    today ? 'text-primary' : 'text-[--text-secondary]'
+                  )}>
                     {formatDate(day)}
                   </span>
                   <button
                     onClick={() => navigate(`/new?date=${day}`)}
-                    style={{
-                      width: 28, height: 28, borderRadius: 8,
-                      background: 'rgba(255,255,255,.07)',
-                      border: '1px solid rgba(255,255,255,.10)',
-                      color: 'var(--text-muted)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}
+                    className="w-7 h-7 rounded-lg bg-surface border border-[--border] text-[--text-muted] flex items-center justify-center hover:bg-surface-hover transition-colors"
                   >
                     <Plus size={14} />
                   </button>
@@ -117,51 +114,42 @@ export function WeekPage() {
                     <button
                       key={session.id}
                       onClick={() => navigate(`/sessions/${session.id}`)}
-                      style={{
-                        width: '100%', textAlign: 'left', padding: '12px 14px',
-                        display: 'flex', alignItems: 'center', gap: 12,
-                        background: isLongRun ? 'rgba(139,92,246,.05)' : 'transparent',
-                        borderBottom: '1px solid rgba(255,255,255,.05)',
-                        borderLeft: isLongRun ? '3px solid #8b5cf6' : 'none',
-                        opacity: session.status === 'skipped' ? .45 : 1,
-                        position: 'relative', overflow: 'hidden',
-                        cursor: 'pointer',
-                      }}
+                      style={{ '--session-color': color } as React.CSSProperties}
+                      className={cn(
+                        'w-full text-left px-3.5 py-3 flex items-center gap-3',
+                        'border-b border-[--border-subtle] cursor-pointer',
+                        'hover:bg-surface/50 transition-colors relative overflow-hidden',
+                        isLongRun && 'bg-violet/5 border-l-[3px] border-l-violet',
+                        session.status === 'skipped' && 'opacity-45'
+                      )}
                     >
                       {!isLongRun && (
-                        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: color, borderRadius: '3px 0 0 3px' }} />
+                        <div className="session-accent-bar bg-[--session-color]" />
                       )}
-                      <div style={{
-                        width: 32, height: 32, borderRadius: 9,
-                        background: `${color}1a`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0,
-                      }}>
+                      <div className="w-8 h-8 rounded-[9px] flex items-center justify-center shrink-0 bg-[--session-color]/10">
                         <Icon size={16} color={color} />
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-semibold text-foreground mb-0.5">
                           {getTypeLabel(session.type)}
                           {isLongRun && (
-                            <span style={{ marginLeft: 8, fontSize: 9, fontWeight: 700, color: '#a78bfa', background: 'rgba(139,92,246,.15)', padding: '2px 6px', borderRadius: 4, verticalAlign: 'middle' }}>
+                            <span className="ml-2 text-[9px] font-bold text-violet bg-violet/15 px-1.5 py-0.5 rounded align-middle">
                               principal
                             </span>
                           )}
                         </div>
                         {session.targetDistance != null && (
-                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                          <div className="text-[11px] text-[--text-muted]">
                             {session.targetDistance} km
                             {session.targetPace != null && ` · ${session.targetPace}/km`}
                           </div>
                         )}
                       </div>
-                      <span style={{
-                        fontSize: 10, fontWeight: 600, padding: '3px 9px', borderRadius: 7, whiteSpace: 'nowrap',
-                        background: session.status === 'done' ? 'rgba(34,197,94,.14)' : session.status === 'skipped' ? 'rgba(239,68,68,.12)' : 'rgba(255,255,255,.07)',
-                        color: session.status === 'done' ? '#4ade80' : session.status === 'skipped' ? '#f87171' : 'var(--text-muted)',
-                        border: `1px solid ${session.status === 'done' ? 'rgba(34,197,94,.2)' : session.status === 'skipped' ? 'rgba(239,68,68,.15)' : 'rgba(255,255,255,.1)'}`,
-                      }}>
-                        {session.status === 'done' ? 'Concluído' : session.status === 'skipped' ? 'Pulado' : 'Planejado'}
+                      <span className={cn(
+                        'text-[10px] font-semibold px-[9px] py-[3px] rounded-[7px] whitespace-nowrap',
+                        STATUS_BADGE[session.status]
+                      )}>
+                        {STATUS_LABEL[session.status]}
                       </span>
                     </button>
                   );
